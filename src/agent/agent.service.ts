@@ -225,9 +225,8 @@ Responde en español de manera profesional y amigable.`;
           args.tz || 'America/Santiago',
         );
 
-      case 'createReservation':
-        return await this.zeroqService.createReservation(
-          {
+        case 'createReservation':
+          return await this.zeroqService.createReservation({
             officeSlug: args.officeSlug,
             lineSlug: args.lineSlug,
             from: args.from,
@@ -248,15 +247,10 @@ Responde en español de manera profesional y amigable.`;
               utm: null,
               formsError: null,
             },
-          },
-          args.authToken,
-        );
+          });
 
-      case 'getReservation':
-        return await this.zeroqService.getReservation(
-          args.reservationId,
-          args.authToken,
-        );
+        case 'getReservation':
+          return await this.zeroqService.getReservation(args.reservationId);
 
       default:
         throw new Error(`Unknown tool: ${toolName}`);

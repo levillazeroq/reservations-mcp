@@ -91,12 +91,13 @@ export class ZeroQService {
    */
   async createReservation(
     data: ReservationRequest,
-    authToken?: string,
   ): Promise<Reservation> {
     try {
       const url = this.configService.zeroqReservationsBaseUrl;
       const headers: Record<string, string> = {};
 
+      // Usar el token de autenticación de las variables de entorno
+      const authToken = this.configService.zeroqAuthToken;
       if (authToken) {
         headers['authorization'] = authToken;
       }
@@ -117,12 +118,13 @@ export class ZeroQService {
    */
   async getReservation(
     reservationId: string,
-    authToken?: string,
   ): Promise<Reservation> {
     try {
       const url = `${this.configService.zeroqReservationsBaseUrl}/${reservationId}`;
       const headers: Record<string, string> = {};
 
+      // Usar el token de autenticación de las variables de entorno
+      const authToken = this.configService.zeroqAuthToken;
       if (authToken) {
         headers['authorization'] = authToken;
       }

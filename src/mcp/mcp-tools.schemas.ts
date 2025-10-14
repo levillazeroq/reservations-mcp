@@ -1,6 +1,6 @@
 /**
  * MCP Tools Schemas for n8n AI Agent
- * 
+ *
  * Estos schemas definen las herramientas (tools) disponibles para el agente de n8n
  * siguiendo el protocolo MCP (Model Context Protocol)
  */
@@ -168,11 +168,6 @@ export const MCP_TOOLS: MCPTool[] = [
           description: 'Si la reserva es por videollamada. Por defecto: false',
           default: false,
         },
-        authToken: {
-          type: 'string',
-          description:
-            'Token de autenticación JWT de ZeroQ (opcional, si no se provee se usará el del sistema)',
-        },
       },
       required: [
         'officeSlug',
@@ -195,11 +190,6 @@ export const MCP_TOOLS: MCPTool[] = [
         reservationId: {
           type: 'string',
           description: 'ID único de la reserva (ej: "R89104178963")',
-        },
-        authToken: {
-          type: 'string',
-          description:
-            'Token de autenticación JWT de ZeroQ (opcional)',
         },
       },
       required: ['reservationId'],

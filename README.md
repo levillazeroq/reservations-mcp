@@ -354,9 +354,10 @@ Crea una nueva reserva para un bloque específico.
   personEmail: string;     // Requerido: Email
   personRut?: string;      // Opcional: RUT/DNI
   meet?: boolean;          // Opcional: Si es videollamada (default: false)
-  authToken?: string;      // Opcional: Token JWT de autenticación
 }
 ```
+
+> **Nota**: La autenticación con ZeroQ se maneja automáticamente usando `ZEROQ_AUTH_TOKEN` de las variables de entorno.
 
 **Ejemplo:**
 ```json
@@ -387,9 +388,10 @@ Consulta detalles de una reserva existente.
 ```typescript
 {
   reservationId: string;   // Requerido: ID de la reserva (ej: "R89104178963")
-  authToken?: string;      // Opcional: Token JWT de autenticación
 }
 ```
+
+> **Nota**: La autenticación con ZeroQ se maneja automáticamente usando `ZEROQ_AUTH_TOKEN` de las variables de entorno.
 
 **Retorna:** Objeto de reserva completo con todos sus detalles
 

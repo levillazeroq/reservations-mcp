@@ -76,38 +76,32 @@ export class MCPService {
             'personPhone',
             'personEmail',
           ]);
-          return await this.zeroqService.createReservation(
-            {
-              officeSlug: args.officeSlug,
-              lineSlug: args.lineSlug,
-              from: args.from,
-              to: args.to,
-              meet: args.meet || false,
-              meta: {
-                forms: {
-                  type: 'default',
-                  questions: [
-                    { question: 'Nombre', answer: args.personName },
-                    { question: 'Teléfono', answer: args.personPhone },
-                    { question: 'Email', answer: args.personEmail },
-                    ...(args.personRut
-                      ? [{ question: 'RUT', answer: args.personRut }]
-                      : []),
-                  ],
-                },
-                utm: null,
-                formsError: null,
+          return await this.zeroqService.createReservation({
+            officeSlug: args.officeSlug,
+            lineSlug: args.lineSlug,
+            from: args.from,
+            to: args.to,
+            meet: args.meet || false,
+            meta: {
+              forms: {
+                type: 'default',
+                questions: [
+                  { question: 'Nombre', answer: args.personName },
+                  { question: 'Teléfono', answer: args.personPhone },
+                  { question: 'Email', answer: args.personEmail },
+                  ...(args.personRut
+                    ? [{ question: 'RUT', answer: args.personRut }]
+                    : []),
+                ],
               },
+              utm: null,
+              formsError: null,
             },
-            args.authToken,
-          );
+          });
 
         case 'getReservation':
           this.validateRequired(args, ['reservationId']);
-          return await this.zeroqService.getReservation(
-            args.reservationId,
-            args.authToken,
-          );
+          return await this.zeroqService.getReservation(args.reservationId);
 
         default:
           throw new BadRequestException(`Unknown tool: ${toolName}`);
