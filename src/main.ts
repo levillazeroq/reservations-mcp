@@ -30,8 +30,10 @@ async function bootstrap() {
 
   await app.listen(port);
   logger.log(`🚀 MCP Server running on: http://localhost:${port}`);
-  logger.log(`📋 Tools endpoint: http://localhost:${port}/mcp/tools`);
-  logger.log(`⚡ Execute endpoint: http://localhost:${port}/mcp/execute`);
+  logger.log(`📋 MCP SSE endpoint: http://localhost:${port}/mcp/sse`);
+  logger.log(`📨 MCP Message endpoint: http://localhost:${port}/mcp/message`);
+  logger.log(`📋 Tools endpoint (REST): http://localhost:${port}/mcp/tools`);
+  logger.log(`⚡ Execute endpoint (REST): http://localhost:${port}/mcp/execute`);
   logger.log(`🤖 Agent chat endpoint: http://localhost:${port}/agent/chat`);
 }
 bootstrap();

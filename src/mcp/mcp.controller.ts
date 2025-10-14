@@ -12,7 +12,7 @@ import { ApiKeyGuard } from '../common/guards/api-key.guard';
 
 /**
  * Controlador MCP - Expone endpoints para n8n y otros clientes
- * 
+ *
  * Endpoints:
  * - GET /mcp/tools - Lista de tools disponibles
  * - POST /mcp/execute - Ejecutar una tool específica
@@ -25,11 +25,24 @@ export class MCPController {
   /**
    * Lista todas las tools disponibles con sus schemas
    * Endpoint para que n8n descubra las tools disponibles
+   * Formato compatible con MCP Client de n8n
    */
   @Get('tools')
   @HttpCode(HttpStatus.OK)
   listTools() {
-    return this.mcpService.listTools();
+    const result = this.mcpService.listTools();
+
+    // Formato compatible con n8n MCP Client
+    return {
+      ...result,
+      capabilities: {
+        tools: true,
+      },
+      serverInfo: {
+        name: 'zeroq-mcp',
+        version: result.version,
+      },
+    };
   }
 
   /**
@@ -43,7 +56,7 @@ export class MCPController {
       body.tool,
       body.arguments || {},
     );
-    
+
     return {
       success: true,
       tool: body.tool,

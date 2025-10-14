@@ -627,7 +627,254 @@ curl -X POST http://localhost:3000/mcp/execute \
 
 ## 🔗 Integración con n8n
 
-### Opción A: Modo Simple (Recomendado)
+### 📋 Pre-requisitos
+
+- ✅ Servidor MCP corriendo en `http://localhost:3030`
+- ✅ n8n instalado y corriendo
+- ✅ API Key configurada en tu `.env` (por defecto: `change-me-strong-key`)
+
+### 🎯 Configuración Paso a Paso
+
+#### Paso 1: Crear Credencial MCP en n8n
+
+1. Abre n8n
+2. Ve a **Settings** → **Credentials**
+3. Click en **"Create New Credential"**
+4. Busca y selecciona **"MCP Server"**
+5. Llena los campos:
+   ```
+   Credential Name:    ZeroQ MCP Server
+   Server Transport:   HTTP Streamable  ⚠️ MUY IMPORTANTE
+   URL:                http://localhost:3030/mcp/sse
+   Authentication:     Header Auth
+     ├─ Header Name:   x-api-key
+     └─ Header Value:  change-me-strong-key
+   ```
+6. Click **"Save"**
+
+#### Paso 2: Crear Workflow con AI Agent
+
+1. Crea un nuevo workflow
+2. Agrega los siguientes nodos:
+
+```
+[Chat Trigger]
+    ↓
+[AI Agent]
+    ↓
+[Respond to Chat]
+```
+
+#### Paso 3: Configurar el AI Agent
+
+1. **Doble click en el nodo "AI Agent"**
+
+2. **Configurar el Model:**
+   - Click en "Model" → "Add AI Model"
+   - Selecciona "OpenAI Chat Model"
+   - Conecta tu credencial de OpenAI
+   - Modelo recomendado: `gpt-4o-mini`
+
+3. **Agregar MCP Client Tool:**
+   - En la sección **"Tools"**
+   - Click **"Add Tool"**
+   - Busca y selecciona **"MCP Client Tool"**
+   - En "Credential to connect with":
+     - Selecciona la credencial **"ZeroQ MCP Server"** que creaste
+   - En "Tool Selection":
+     - Selecciona **"All"** para usar todas las tools
+
+4. **System Prompt (Opcional pero recomendado):**
+   ```
+   Eres un asistente de reservas de ZeroQ.
+   Ayudas a los usuarios a:
+   - Buscar oficinas disponibles
+   - Consultar horarios disponibles
+   - Crear reservas
+   - Consultar reservas existentes
+   
+   Siempre confirma los datos antes de crear una reserva.
+   ```
+
+#### Paso 4: Probar el Workflow
+
+1. **Activa el workflow** (toggle en la esquina superior derecha)
+
+2. **Abre el Chat** (botón de chat en la parte inferior)
+
+3. **Prueba con estos mensajes:**
+
+   ```
+   👤 Usuario: "Hola, lista las oficinas disponibles"
+   
+   🤖 Asistente: [Ejecuta listWebOffices automáticamente]
+   ```
+
+   ```
+   👤 Usuario: "Quiero hacer una reserva para mañana a las 10am en demo-web-oscar"
+   
+   🤖 Asistente: [Ejecuta getOfficeDetails, getOfficeLines, getAvailableBlocks]
+                 "Necesito algunos datos para completar la reserva..."
+   ```
+
+   ```
+   👤 Usuario: "Mi nombre es Juan Pérez, email juan@example.com, teléfono +56912345678"
+   
+   🤖 Asistente: [Ejecuta createReservation]
+                 "Reserva creada con éxito. Tu código es: R123456789"
+   ```
+
+### 🔍 Verificación de Conexión
+
+#### Test 1: Verificar que el servidor está corriendo
+
+```bash
+curl http://localhost:3030/mcp/health
+```
+
+**Respuesta esperada:**
+```json
+{
+  "status": "ok",
+  "service": "zeroq-mcp",
+  "version": "1.0.0",
+  "timestamp": "2025-10-14T19:00:00.000Z"
+}
+```
+
+#### Test 2: Verificar endpoint MCP
+
+```bash
+curl -X POST http://localhost:3030/mcp/sse \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: change-me-strong-key" \
+  -d '{"method":"tools/list","id":1}'
+```
+
+**Debe retornar la lista de tools disponibles en formato SSE.**
+
+### ❓ Troubleshooting
+
+#### Error: "Could not connect to MCP Server"
+
+**Posibles causas:**
+
+1. **API Key incorrecta**
+   - Verifica que el valor en n8n coincida EXACTAMENTE con tu `.env`
+   - Por defecto es: `change-me-strong-key`
+
+2. **Server Transport incorrecto**
+   - ⚠️ DEBE ser **"HTTP Streamable"**, NO "stdio"
+   - Si seleccionaste "stdio", cambia a "HTTP Streamable"
+
+3. **URL incorrecta**
+   - Debe ser: `http://localhost:3030/mcp/sse`
+   - **NO** `http://localhost:3030/sse`
+   - **NO** `http://localhost:3030/mcp`
+
+4. **Servidor no está corriendo**
+   ```bash
+   # Verifica que el servidor esté corriendo
+   ps aux | grep "nest start"
+   
+   # Si no está corriendo, inícialo
+   cd /path/to/mcp-tools-reserve
+   yarn start:dev
+   ```
+
+5. **n8n en Docker**
+   - Si n8n corre en Docker, usa: `http://host.docker.internal:3030/mcp/sse`
+   - No uses `localhost` desde dentro de Docker
+
+#### Error: "Tools not found" o "Empty tools list"
+
+1. Verifica que el endpoint SSE responda:
+   ```bash
+   curl -H "x-api-key: change-me-strong-key" \
+     http://localhost:3030/mcp/sse
+   ```
+
+2. Recarga la credencial en n8n:
+   - Edita la credencial MCP
+   - Click "Test" para verificar conexión
+   - Guarda de nuevo
+
+3. Recarga el nodo MCP Client Tool:
+   - Elimina el tool del AI Agent
+   - Agrega de nuevo el MCP Client Tool
+   - Selecciona la credencial
+
+#### Error: "Authentication failed"
+
+- Verifica que el header se llame **EXACTAMENTE** `x-api-key` (minúsculas, guiones)
+- Verifica que el valor coincida con `MCP_PUBLIC_API_KEY` en tu `.env`
+- No agregues espacios antes o después del valor
+
+#### Las tools no se ejecutan
+
+1. Verifica que el AI Agent tenga:
+   - ✅ Un modelo de OpenAI configurado
+   - ✅ El MCP Client Tool agregado
+   - ✅ Tool Selection en "All"
+
+2. Prueba con un prompt explícito:
+   ```
+   "Por favor usa la tool listWebOffices para mostrarme las oficinas"
+   ```
+
+### 📊 Tools Disponibles
+
+| Tool | Descripción | Uso en n8n |
+|------|-------------|------------|
+| `chatAgent` | Agente conversacional inteligente | Ideal para consultas en lenguaje natural |
+| `listWebOffices` | Lista oficinas disponibles | El agent lo usa automáticamente |
+| `getOfficeDetails` | Detalles de oficina específica | Requiere `officeSlug` |
+| `getOfficeLines` | Líneas de atención de oficina | Requiere `officeSlug` |
+| `getAvailableBlocks` | Bloques de tiempo disponibles | Requiere `lineSlug`, `from`, `to` |
+| `createReservation` | Crear nueva reserva | Requiere datos completos |
+| `getReservation` | Consultar reserva existente | Requiere `reservationId` |
+
+### 🎓 Ejemplos de Uso
+
+#### Ejemplo 1: Búsqueda Simple
+
+```
+Usuario: "¿Qué oficinas hay disponibles?"
+
+AI Agent:
+1. Detecta la intención
+2. Ejecuta: listWebOffices()
+3. Responde con la lista formateada
+```
+
+#### Ejemplo 2: Reserva Completa
+
+```
+Usuario: "Quiero reservar en demo-web-oscar para mañana 10am"
+
+AI Agent:
+1. Ejecuta: getOfficeDetails(officeSlug: "demo-web-oscar")
+2. Ejecuta: getOfficeLines(officeSlug: "demo-web-oscar")
+3. Ejecuta: getAvailableBlocks(lineSlug: "...", from: "...", to: "...")
+4. Pide datos de la persona
+5. Cuando el usuario los da:
+   Ejecuta: createReservation(...)
+6. Confirma la reserva con el código
+```
+
+#### Ejemplo 3: Consultar Reserva
+
+```
+Usuario: "Consulta mi reserva R123456789"
+
+AI Agent:
+1. Ejecuta: getReservation(reservationId: "R123456789")
+2. Responde con los detalles
+```
+
+---
+
+### Opción Alternativa: Modo HTTP Request (Simple)
 
 **Configuración rápida usando solo el endpoint conversacional.**
 
