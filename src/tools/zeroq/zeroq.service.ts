@@ -7,6 +7,7 @@ import {
   BlockDay,
   Reservation,
   ReservationRequest,
+  Line,
 } from './types';
 
 @Injectable()
@@ -52,10 +53,10 @@ export class ZeroQService {
   async getOfficeLines(officeSlug: string): Promise<Line[]> {
     try {
       const officeDetails = await this.getOfficeDetails(officeSlug);
-      
+
       // Convertir el objeto lines a un array
       const linesArray = Object.values(officeDetails.lines || {});
-      
+
       // Filtrar líneas que no tienen reservas deshabilitadas
       return linesArray.filter(
         (line: any) => !line.meta?.disabled_reserves
@@ -95,7 +96,7 @@ export class ZeroQService {
     try {
       const url = this.configService.zeroqReservationsBaseUrl;
       const headers: Record<string, string> = {};
-      
+
       if (authToken) {
         headers['authorization'] = authToken;
       }
@@ -103,7 +104,7 @@ export class ZeroQService {
       const response = await this.httpService.post<Reservation>(url, data, {
         headers,
       });
-      
+
       return response;
     } catch (error) {
       this.logger.error('Error creating reservation:', error);
@@ -121,7 +122,7 @@ export class ZeroQService {
     try {
       const url = `${this.configService.zeroqReservationsBaseUrl}/${reservationId}`;
       const headers: Record<string, string> = {};
-      
+
       if (authToken) {
         headers['authorization'] = authToken;
       }
@@ -129,7 +130,7 @@ export class ZeroQService {
       const response = await this.httpService.get<Reservation>(url, {
         headers,
       });
-      
+
       return response;
     } catch (error) {
       this.logger.error(`Error getting reservation ${reservationId}:`, error);
