@@ -131,7 +131,7 @@ export class AgentService {
       // Retornar la respuesta final del asistente
       return {
         success: true,
-        message: assistantMessage.content,
+        message: assistantMessage.content || 'No response generated',
         conversationHistory: messages.slice(1), // Sin el system prompt
         toolCallsMade: iterations,
       };
@@ -192,7 +192,7 @@ Responde en español de manera profesional y amigable.`;
    */
   private convertToolsToOpenAIFormat() {
     return MCP_TOOLS.map((tool) => ({
-      type: 'function',
+      type: 'function' as const,
       function: {
         name: tool.name,
         description: tool.description,
