@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '../../config/config.service';
+import axios, { AxiosRequestConfig, AxiosError } from 'axios';
 
 @Injectable()
 export class HttpService {
@@ -7,11 +8,11 @@ export class HttpService {
 
   constructor(private readonly configService: ConfigService) {}
 
-  async get<T>(url: string, options?: RequestInit): Promise<T> {
+  async get<T>(url: string, options?: AxiosRequestConfig): Promise<T> {
     try {
       this.logger.log(`GET ${url}`);
-      const response = await fetch(url, {
-        method: 'GET',
+
+      const response = await axios.get<T>(url, {
         headers: {
           'Content-Type': 'application/json',
           accept: 'application/json, text/plain, */*',
@@ -21,52 +22,56 @@ export class HttpService {
         ...options,
       });
 
-      if (!response.ok) {
-        const error = await response.text();
-        throw new Error(
-          `HTTP ${response.status}: ${response.statusText} - ${error}`,
-        );
-      }
-
-      return await response.json();
+      return response.data;
     } catch (error) {
       this.logger.error(`GET ${url} failed:`, error);
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError;
+        throw new Error(
+          `HTTP ${axiosError.response?.status}: ${axiosError.response?.statusText} - ${JSON.stringify(axiosError.response?.data)}`,
+        );
+      }
       throw error;
     }
   }
 
-  async post<T>(url: string, data: any, options?: RequestInit): Promise<T> {
+  async post<T>(url: string, data: any, options?: AxiosRequestConfig): Promise<T> {
     try {
-      const body = JSON.stringify(data);
+      this.logger.log(`📤 POST ${url}`);
+      this.logger.log(`📦 ========== FULL REQUEST BODY ==========`);
+      this.logger.log(JSON.stringify(data, null, 2));
+      this.logger.log(`📦 ======================================`);
+
       const headers = {
         'Content-Type': 'application/json;charset=UTF-8',
         accept: 'application/json, text/plain, */*',
         ...options?.headers,
       };
 
+      this.logger.debug(`📦 Headers: ${JSON.stringify(headers, null, 2)}`);
 
-      const response = await fetch(url, {
-        method: 'POST',
+      const response = await axios.post<T>(url, data, {
         headers,
-        body,
         ...options,
       });
 
       this.logger.debug(`📩 Response status: ${response.status} ${response.statusText}`);
-      this.logger.debug(`📩 Response headers: ${JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2)}`);
+      this.logger.debug(`📩 Response headers: ${JSON.stringify(response.headers, null, 2)}`);
+      this.logger.log(`✅ POST ${url} successful`);
 
-      if (!response.ok) {
-        const error = await response.text();
-        this.logger.error(`📩 Response body: ${error}`);
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError;
+        this.logger.error(`📩 Response status: ${axiosError.response?.status} ${axiosError.response?.statusText}`);
+        this.logger.error(`📩 Response body: ${JSON.stringify(axiosError.response?.data)}`);
+        this.logger.error(`POST ${url} failed:`, axiosError.message);
+
         throw new Error(
-          `HTTP ${response.status}: ${response.statusText} - ${error}`,
+          `HTTP ${axiosError.response?.status}: ${axiosError.response?.statusText} - ${JSON.stringify(axiosError.response?.data)}`,
         );
       }
 
-      const result = await response.json();
-      this.logger.log(`✅ POST ${url} successful`);
-      return result;
-    } catch (error) {
       this.logger.error(`POST ${url} failed:`, error);
       throw error;
     }
