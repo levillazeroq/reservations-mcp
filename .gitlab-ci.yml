@@ -101,12 +101,11 @@ deploy:development:
 deploy:production:
   stage: deploy
   image: node:22-slim
-  variables:
-    RAILWAY_TOKEN: $RAILWAY_TOKEN
   before_script:
-    # Instalar Railway CLI vía npm
+    # Instalar dependencias necesarias
     - echo "📥 Instalando Railway CLI..."
     - npm install -g @railway/cli
+    - apt-get update && apt-get install -y git
     - echo "✅ Railway CLI instalado"
   script:
     - echo "🚀 Desplegando a Railway (Production)..."
@@ -115,8 +114,9 @@ deploy:production:
     - if [ -z "$RAILWAY_PROJECT_ID" ]; then echo "❌ Error RAILWAY_PROJECT_ID no configurado" && exit 1; fi
     - echo "✅ Variables verificadas correctamente"
     - echo "📦 Iniciando deployment a Railway..."
-    - echo "Debug - RAILWAY_TOKEN set:" $(if [ -n "$RAILWAY_TOKEN" ]; then echo "YES"; else echo "NO"; fi)
-    - RAILWAY_TOKEN=$RAILWAY_TOKEN railway up -d
+    - export RAILWAY_TOKEN=$RAILWAY_TOKEN
+    - railway whoami || echo "Railway CLI no autenticado, pero token está configurado"
+    - railway up --service=$RAILWAY_PROJECT_ID --detach || railway up --detach
     - echo "✅ Deployment a producción completado exitosamente"
     - echo "🌐 Verifica tu aplicación en Railway Dashboard"
   environment:
