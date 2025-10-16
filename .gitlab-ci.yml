@@ -98,25 +98,18 @@ deploy:development:
   when: manual  # Requiere confirmación manual para deploy
 
 # Deploy a Railway - Ambiente de Producción
+# Basado en: https://blog.railway.com/p/gitlab-ci-cd
 deploy:production:
   stage: deploy
-  image: node:22-slim
-  before_script:
-    # Instalar dependencias necesarias
-    - echo "📥 Instalando Railway CLI..."
-    - npm install -g @railway/cli
-    - apt-get update && apt-get install -y git
-    - echo "✅ Railway CLI instalado"
+  image: ghcr.io/railwayapp/cli:latest
   script:
     - echo "🚀 Desplegando a Railway (Production)..."
     - echo "🔍 Verificando variables de entorno..."
     - if [ -z "$RAILWAY_TOKEN" ]; then echo "❌ Error RAILWAY_TOKEN no configurado" && exit 1; fi
-    - if [ -z "$RAILWAY_PROJECT_ID" ]; then echo "❌ Error RAILWAY_PROJECT_ID no configurado" && exit 1; fi
+    - if [ -z "$RAILWAY_SERVICE_ID" ]; then echo "❌ Error RAILWAY_SERVICE_ID no configurado" && exit 1; fi
     - echo "✅ Variables verificadas correctamente"
     - echo "📦 Iniciando deployment a Railway..."
-    - export RAILWAY_TOKEN=$RAILWAY_TOKEN
-    - railway whoami || echo "Railway CLI no autenticado, pero token está configurado"
-    - railway up --service=$RAILWAY_PROJECT_ID --detach || railway up --detach
+    - railway up --service=$RAILWAY_SERVICE_ID
     - echo "✅ Deployment a producción completado exitosamente"
     - echo "🌐 Verifica tu aplicación en Railway Dashboard"
   environment:
