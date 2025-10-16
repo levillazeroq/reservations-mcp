@@ -37,26 +37,39 @@ export class HttpService {
 
   async post<T>(url: string, data: any, options?: RequestInit): Promise<T> {
     try {
+      const body = JSON.stringify(data);
+      const headers = {
+        'Content-Type': 'application/json;charset=UTF-8',
+        accept: 'application/json, text/plain, */*',
+        ...options?.headers,
+      };
+
       this.logger.log(`POST ${url}`);
+      this.logger.debug(`📨 Body length: ${body.length} bytes`);
+      this.logger.debug(`📨 First 200 chars: ${body.substring(0, 200)}`);
+      this.logger.debug(`📨 Headers: ${JSON.stringify(headers, null, 2)}`);
+
       const response = await fetch(url, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          accept: 'application/json, text/plain, */*',
-          ...options?.headers,
-        },
-        body: JSON.stringify(data),
+        headers,
+        body,
         ...options,
       });
 
+      this.logger.debug(`📩 Response status: ${response.status} ${response.statusText}`);
+      this.logger.debug(`📩 Response headers: ${JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2)}`);
+
       if (!response.ok) {
         const error = await response.text();
+        this.logger.error(`📩 Response body: ${error}`);
         throw new Error(
           `HTTP ${response.status}: ${response.statusText} - ${error}`,
         );
       }
 
-      return await response.json();
+      const result = await response.json();
+      this.logger.log(`✅ POST ${url} successful`);
+      return result;
     } catch (error) {
       this.logger.error(`POST ${url} failed:`, error);
       throw error;

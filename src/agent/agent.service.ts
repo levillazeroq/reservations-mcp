@@ -161,7 +161,14 @@ IMPORTANTE:
 - Sé conciso pero completo en tus respuestas
 - Si no hay disponibilidad en el horario solicitado, sugiere alternativas cercanas
 - Usa los datos reales de las tools, no inventes información
-- Los slugs de oficinas y líneas deben obtenerse primero mediante las tools correspondientes
+
+⚠️ CRÍTICO - MANEJO DE SLUGS:
+- Los "officeSlug" y "lineSlug" son diferentes y NO debes confundirlos
+- officeSlug ejemplo: "demo-web-oscar" (identifica la oficina)
+- lineSlug ejemplo: "demo-web-oscar-fila-01" (identifica una línea específica dentro de la oficina)
+- NUNCA uses el officeSlug donde se requiere un lineSlug
+- SIEMPRE llama primero a "getOfficeLines" para obtener los lineSlugs correctos
+- El lineSlug COMPLETO viene en la propiedad "slug" de cada línea devuelta por getOfficeLines
 
 Flujo típico para crear una reserva:
 1. Obtener lista de oficinas (si no se especifica el slug)
@@ -220,8 +227,7 @@ Responde en español de manera profesional y amigable.`;
       case 'getAvailableBlocks':
         return await this.zeroqService.getAvailableBlocks(
           args.lineSlug,
-          args.from,
-          args.to,
+          args.date,
           args.tz || 'America/Santiago',
         );
 

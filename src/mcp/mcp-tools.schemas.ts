@@ -93,24 +93,19 @@ export const MCP_TOOLS: MCPTool[] = [
   {
     name: 'getAvailableBlocks',
     description:
-      'Obtiene los bloques de tiempo disponibles para una línea específica en un rango de fechas. Cada bloque indica cantidad de slots disponibles.',
+      'Obtiene los bloques de tiempo disponibles para una línea específica en una fecha determinada. El sistema siempre consulta el día completo y retorna solo bloques con slots disponibles (slots > 0). Si no se especifica fecha, usa el día actual.',
     inputSchema: {
       type: 'object',
       properties: {
         lineSlug: {
           type: 'string',
           description:
-            'Slug único de la línea (ej: "demo-web-oscar-fila-01")',
+            'Slug único de la línea (ej: "demo-web-oscar-fila-01"). IMPORTANTE: Debe ser el slug completo de la línea, no el slug de la oficina.',
         },
-        from: {
+        date: {
           type: 'string',
           description:
-            'Fecha/hora de inicio en formato ISO 8601 (ej: "2025-10-14T16:00:00.000Z")',
-        },
-        to: {
-          type: 'string',
-          description:
-            'Fecha/hora de fin en formato ISO 8601 o fecha simple (ej: "2026-04-30")',
+            'Fecha a consultar en formato YYYY-MM-DD (ej: "2025-10-15"). Opcional: si no se proporciona, se usa el día actual. El sistema consulta el día completo automáticamente.',
         },
         tz: {
           type: 'string',
@@ -119,7 +114,7 @@ export const MCP_TOOLS: MCPTool[] = [
           default: 'America/Santiago',
         },
       },
-      required: ['lineSlug', 'from', 'to'],
+      required: ['lineSlug'],
     },
   },
   {

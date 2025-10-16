@@ -58,11 +58,10 @@ export class MCPService {
           return await this.zeroqService.getOfficeLines(args.officeSlug);
 
         case 'getAvailableBlocks':
-          this.validateRequired(args, ['lineSlug', 'from', 'to']);
+          this.validateRequired(args, ['lineSlug']);
           return await this.zeroqService.getAvailableBlocks(
             args.lineSlug,
-            args.from,
-            args.to,
+            args.date,
             args.tz || 'America/Santiago',
           );
 
