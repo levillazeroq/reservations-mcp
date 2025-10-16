@@ -71,13 +71,12 @@ build:
 # Deploy a Railway - Ambiente de Desarrollo
 deploy:development:
   stage: deploy
-  image: node:22-alpine
+  image: node:22-slim
   before_script:
-    # Instalar Railway CLI vía npm (más confiable)
+    # Instalar Railway CLI vía npm
     - echo "📥 Instalando Railway CLI..."
     - npm install -g @railway/cli
-    - echo "✅ Verificando instalación..."
-    - railway --version
+    - echo "✅ Railway CLI instalado"
   script:
     - echo "🚀 Desplegando a Railway (Development)..."
     - echo "📍 Project ID:$RAILWAY_PROJECT_ID"
@@ -101,13 +100,12 @@ deploy:development:
 # Deploy a Railway - Ambiente de Producción
 deploy:production:
   stage: deploy
-  image: node:22-alpine
+  image: node:22-slim
   before_script:
-    # Instalar Railway CLI vía npm (más confiable)
+    # Instalar Railway CLI vía npm
     - echo "📥 Instalando Railway CLI..."
     - npm install -g @railway/cli
-    - echo "✅ Verificando instalación..."
-    - railway --version
+    - echo "✅ Railway CLI instalado"
   script:
     - echo "🚀 Desplegando a Railway (Production)..."
     - echo "📍 Project ID:$RAILWAY_PROJECT_ID"
