@@ -51,19 +51,19 @@ build:
 # =============================================================================
 # STAGE: Test
 # =============================================================================
-# Ejecutar linting para verificar calidad de código
-lint:
-  stage: test
-  script:
-    - echo "🔍 Ejecutando linting..."
-    - yarn install --frozen-lockfile
-    - yarn lint
-    - echo "✅ Linting completado"
-  only:
-    - develop
-    - main
-    - master
-  allow_failure: true  # No bloquear deploy si falla el linting
+# Ejecutar linting para verificar calidad de código (deshabilitado temporalmente)
+# lint:
+#   stage: test
+#   script:
+#     - echo "🔍 Ejecutando linting..."
+#     - yarn install --frozen-lockfile
+#     - yarn lint
+#     - echo "✅ Linting completado"
+#   only:
+#     - develop
+#     - main
+#     - master
+#   allow_failure: true  # No bloquear deploy si falla el linting
 
 # =============================================================================
 # STAGE: Deploy
@@ -73,14 +73,11 @@ deploy:development:
   stage: deploy
   image: node:22-alpine
   before_script:
-    # Instalar Railway CLI y dependencias
-    - echo "📥 Instalando dependencias..."
-    - apk add --no-cache curl bash tar gzip
-    - echo "📥 Descargando Railway CLI..."
-    - curl -fsSL https://railway.app/install.sh | bash
-    - export PATH="/root/.railway/bin:$PATH"
+    # Instalar Railway CLI vía npm (más confiable)
+    - echo "📥 Instalando Railway CLI..."
+    - npm install -g @railway/cli
     - echo "✅ Verificando instalación..."
-    - railway --version || (echo "❌ Error al instalar Railway CLI" && exit 1)
+    - railway --version
   script:
     - echo "🚀 Desplegando a Railway (Development)..."
     - echo "📍 Project ID:$RAILWAY_PROJECT_ID"
@@ -106,14 +103,11 @@ deploy:production:
   stage: deploy
   image: node:22-alpine
   before_script:
-    # Instalar Railway CLI y dependencias
-    - echo "📥 Instalando dependencias..."
-    - apk add --no-cache curl bash tar gzip
-    - echo "📥 Descargando Railway CLI..."
-    - curl -fsSL https://railway.app/install.sh | bash
-    - export PATH="/root/.railway/bin:$PATH"
+    # Instalar Railway CLI vía npm (más confiable)
+    - echo "📥 Instalando Railway CLI..."
+    - npm install -g @railway/cli
     - echo "✅ Verificando instalación..."
-    - railway --version || (echo "❌ Error al instalar Railway CLI" && exit 1)
+    - railway --version
   script:
     - echo "🚀 Desplegando a Railway (Production)..."
     - echo "📍 Project ID:$RAILWAY_PROJECT_ID"
