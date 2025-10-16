@@ -1,0 +1,174 @@
+# =============================================================================
+# GitLab CI/CD Pipeline para Railway Deployment
+# =============================================================================
+# Este pipeline despliega automáticamente la aplicación a Railway
+# cuando se hace push a las ramas especificadas
+
+# Definir la imagen base para el pipeline
+image: node:22-alpine
+
+# Definir las etapas del pipeline
+stages:
+  - build
+  - test
+  - deploy
+
+# Cache de node_modules para acelerar builds
+cache:
+  key:
+    files:
+      - yarn.lock
+  paths:
+    - node_modules/
+    - .yarn
+
+# Variables globales
+variables:
+  # Deshabilitar warnings de npm/yarn
+  CI: "true"
+
+# =============================================================================
+# STAGE: Build
+# =============================================================================
+# Compilar la aplicación para verificar que no hay errores de sintaxis
+build:
+  stage: build
+  script:
+    - echo "📦 Instalando dependencias..."
+    - yarn install --frozen-lockfile
+    - echo "🔨 Compilando aplicación..."
+    - yarn build
+    - echo "✅ Build completado exitosamente"
+  artifacts:
+    paths:
+      - dist/
+    expire_in: 1 hour
+  only:
+    - develop
+    - main
+    - master
+
+# =============================================================================
+# STAGE: Test
+# =============================================================================
+# Ejecutar linting para verificar calidad de código
+lint:
+  stage: test
+  script:
+    - echo "🔍 Ejecutando linting..."
+    - yarn install --frozen-lockfile
+    - yarn lint
+    - echo "✅ Linting completado"
+  only:
+    - develop
+    - main
+    - master
+  allow_failure: true  # No bloquear deploy si falla el linting
+
+# =============================================================================
+# STAGE: Deploy
+# =============================================================================
+# Deploy a Railway - Ambiente de Desarrollo
+deploy:development:
+  stage: deploy
+  image: alpine:latest
+  before_script:
+    # Instalar Railway CLI y dependencias
+    - echo "📥 Instalando Railway CLI..."
+    - apk add --no-cache curl bash
+    - curl -fsSL https://railway.app/install.sh | sh
+    - export PATH="/root/.railway/bin:$PATH"
+    - railway --version
+  script:
+    - echo "🚀 Desplegando a Railway (Development)..."
+    - echo "📍 Project ID:$RAILWAY_PROJECT_ID"
+    
+    # Verificar que las variables necesarias están configuradas
+    - |
+      if [ -z "$RAILWAY_TOKEN" ]; then
+        echo "❌ Error: RAILWAY_TOKEN no está configurado"
+        exit 1
+      fi
+      
+      if [ -z "$RAILWAY_PROJECT_ID" ]; then
+        echo "❌ Error: RAILWAY_PROJECT_ID no está configurado"
+        exit 1
+      fi
+    
+    # Ejecutar deployment usando Railway CLI
+    - railway link --project $RAILWAY_PROJECT_ID
+    - railway up --detach
+    
+    - echo "✅ Deployment completado exitosamente"
+    - echo "🌐 Verifica tu aplicación en Railway Dashboard"
+  environment:
+    name: development
+    url: https://your-app.railway.app  # Actualiza con tu URL real
+  only:
+    - develop
+  when: manual  # Requiere confirmación manual para deploy
+
+# Deploy a Railway - Ambiente de Producción
+deploy:production:
+  stage: deploy
+  image: alpine:latest
+  before_script:
+    # Instalar Railway CLI y dependencias
+    - echo "📥 Instalando Railway CLI..."
+    - apk add --no-cache curl bash
+    - curl -fsSL https://railway.app/install.sh | sh
+    - export PATH="/root/.railway/bin:$PATH"
+    - railway --version
+  script:
+    - echo "🚀 Desplegando a Railway (Production)..."
+    - echo "📍 Project ID: $RAILWAY_PROJECT_ID"
+    
+    # Verificar que las variables necesarias están configuradas
+    - |
+      if [ -z "$RAILWAY_TOKEN" ]; then
+        echo "❌ Error: RAILWAY_TOKEN no está configurado"
+        exit 1
+      fi
+      
+      if [ -z "$RAILWAY_PROJECT_ID" ]; then
+        echo "❌ Error: RAILWAY_PROJECT_ID no está configurado"
+        exit 1
+      fi
+    
+    # Ejecutar deployment usando Railway CLI
+    - railway link --project $RAILWAY_PROJECT_ID
+    - railway up --detach
+    
+    - echo "✅ Deployment a producción completado exitosamente"
+    - echo "🌐 Verifica tu aplicación en Railway Dashboard"
+  environment:
+    name: production
+    url: https://your-app.railway.app  # Actualiza con tu URL real
+  only:
+    - main
+    - master
+  when: manual  # Requiere confirmación manual para deploy a producción
+
+# =============================================================================
+# Notas de Configuración
+# =============================================================================
+# Variables de entorno requeridas en GitLab CI/CD Settings:
+#
+# 1. RAILWAY_TOKEN (Protected, Masked)
+#    - Token de autenticación de Railway
+#    - Obtener en: https://railway.app/account/tokens
+#
+# 2. RAILWAY_PROJECT_ID (Protected)
+#    - ID del proyecto en Railway
+#    - Encontrar en: Settings -> General de tu proyecto
+#
+# 3. Variables de la aplicación (opcional, si no las configuras en Railway):
+#    - MCP_PUBLIC_API_KEY
+#    - OPENAI_API_KEY
+#    - OPENAI_MODEL
+#    - ZEROQ_AUTH_TOKEN
+#    - etc.
+#
+# Configurar en: GitLab Project -> Settings -> CI/CD -> Variables
+# =============================================================================
+
