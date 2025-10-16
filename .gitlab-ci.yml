@@ -71,14 +71,16 @@ lint:
 # Deploy a Railway - Ambiente de Desarrollo
 deploy:development:
   stage: deploy
-  image: alpine:latest
+  image: node:22-alpine
   before_script:
     # Instalar Railway CLI y dependencias
-    - echo "📥 Instalando Railway CLI..."
-    - apk add --no-cache curl bash
-    - curl -fsSL https://railway.app/install.sh | sh
+    - echo "📥 Instalando dependencias..."
+    - apk add --no-cache curl bash tar gzip
+    - echo "📥 Descargando Railway CLI..."
+    - curl -fsSL https://railway.app/install.sh | bash
     - export PATH="/root/.railway/bin:$PATH"
-    - railway --version
+    - echo "✅ Verificando instalación..."
+    - railway --version || (echo "❌ Error al instalar Railway CLI" && exit 1)
   script:
     - echo "🚀 Desplegando a Railway (Development)..."
     - echo "📍 Project ID:$RAILWAY_PROJECT_ID"
@@ -102,14 +104,16 @@ deploy:development:
 # Deploy a Railway - Ambiente de Producción
 deploy:production:
   stage: deploy
-  image: alpine:latest
+  image: node:22-alpine
   before_script:
     # Instalar Railway CLI y dependencias
-    - echo "📥 Instalando Railway CLI..."
-    - apk add --no-cache curl bash
-    - curl -fsSL https://railway.app/install.sh | sh
+    - echo "📥 Instalando dependencias..."
+    - apk add --no-cache curl bash tar gzip
+    - echo "📥 Descargando Railway CLI..."
+    - curl -fsSL https://railway.app/install.sh | bash
     - export PATH="/root/.railway/bin:$PATH"
-    - railway --version
+    - echo "✅ Verificando instalación..."
+    - railway --version || (echo "❌ Error al instalar Railway CLI" && exit 1)
   script:
     - echo "🚀 Desplegando a Railway (Production)..."
     - echo "📍 Project ID:$RAILWAY_PROJECT_ID"
