@@ -85,7 +85,8 @@ deploy:development:
     - if [ -z "$RAILWAY_PROJECT_ID" ]; then echo "❌ Error RAILWAY_PROJECT_ID no configurado" && exit 1; fi
     - echo "✅ Variables verificadas correctamente"
     - echo "🔗 Vinculando proyecto de Railway..."
-    - railway link --project $RAILWAY_PROJECT_ID
+    - export RAILWAY_TOKEN=$RAILWAY_TOKEN
+    - railway link $RAILWAY_PROJECT_ID
     - echo "📦 Iniciando deployment..."
     - railway up --detach
     - echo "✅ Deployment completado exitosamente"
@@ -114,7 +115,8 @@ deploy:production:
     - if [ -z "$RAILWAY_PROJECT_ID" ]; then echo "❌ Error RAILWAY_PROJECT_ID no configurado" && exit 1; fi
     - echo "✅ Variables verificadas correctamente"
     - echo "🔗 Vinculando proyecto de Railway..."
-    - railway link --project $RAILWAY_PROJECT_ID
+    - export RAILWAY_TOKEN=$RAILWAY_TOKEN
+    - railway link $RAILWAY_PROJECT_ID
     - echo "📦 Iniciando deployment..."
     - railway up --detach
     - echo "✅ Deployment a producción completado exitosamente"
