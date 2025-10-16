@@ -83,15 +83,15 @@ docker:build:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
   script:
     - echo "🏗️ Construyendo imagen Docker..."
-    - echo "📦 Image tag:$IMAGE_TAG"
+    - echo "📦 Image tag - $IMAGE_TAG"
     - docker build -t $IMAGE_TAG -t $IMAGE_LATEST .
     - echo "📤 Pusheando imagen a GitLab Container Registry..."
     - docker push $IMAGE_TAG
     - docker push $IMAGE_LATEST
     - echo "✅ Imagen publicada exitosamente"
-    - echo "🎯 Imagen disponible en:$CI_REGISTRY_IMAGE"
-    - echo "📌 Tag SHA:$CI_COMMIT_SHORT_SHA"
-    - echo "📌 Tag Latest: latest"
+    - echo "🎯 Imagen disponible en - $CI_REGISTRY_IMAGE"
+    - echo "📌 Tag SHA - $CI_COMMIT_SHORT_SHA"
+    - echo "📌 Tag Latest - latest"
   only:
     - main
     - master
