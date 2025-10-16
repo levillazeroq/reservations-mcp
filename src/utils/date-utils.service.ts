@@ -86,7 +86,9 @@ export class DateUtilsService {
 
     if (dateObj < today) {
       const todayStr = today.toISOString().split('T')[0];
-      this.logger.error(`❌ ${fieldName}: ${date} is before today (${todayStr})`);
+      this.logger.error(
+        `❌ ${fieldName}: ${date} is before today (${todayStr})`,
+      );
       throw new Error(
         `Cannot use past dates. ${fieldName} (${date}) is before today (${todayStr}). Please provide a current or future date.`,
       );
@@ -97,20 +99,31 @@ export class DateUtilsService {
    * Valida y normaliza una fecha para crear reservas
    * Fuerza año actual y valida que no sea pasada
    */
-  validateAndNormalizeDate(dateInput: string | Date, fieldName: string): string {
+  validateAndNormalizeDate(
+    dateInput: string | Date,
+    fieldName: string,
+  ): string {
     const currentYear = new Date().getFullYear();
-    let parsedDate = new Date(dateInput);
+    const dateInputStr =
+      dateInput instanceof Date ? dateInput.toISOString() : dateInput;
+    const parsedDate = new Date(dateInput);
 
     if (isNaN(parsedDate.getTime())) {
-      this.logger.error(`❌ Invalid date format for ${fieldName}: "${dateInput}"`);
-      throw new Error(`Invalid date format for ${fieldName}: "${dateInput}"`);
+      this.logger.error(
+        `❌ Invalid date format for ${fieldName}: "${dateInputStr}"`,
+      );
+      throw new Error(
+        `Invalid date format for ${fieldName}: "${dateInputStr}"`,
+      );
     }
 
     const originalYear = parsedDate.getFullYear();
 
     // ⚠️ FORZAR AÑO ACTUAL si es diferente
     if (originalYear !== currentYear) {
-      this.logger.warn(`⚠️  ${fieldName}: Year ${originalYear} adjusted to ${currentYear}`);
+      this.logger.warn(
+        `⚠️  ${fieldName}: Year ${originalYear} adjusted to ${currentYear}`,
+      );
       // Mantener mes, día, hora, minuto, segundo pero cambiar año
       parsedDate.setFullYear(currentYear);
     }
@@ -125,7 +138,9 @@ export class DateUtilsService {
     if (dateOnly < today) {
       const todayStr = today.toISOString().split('T')[0];
       const dateStr = parsedDate.toISOString().split('T')[0];
-      this.logger.error(`❌ ${fieldName}: ${dateStr} is before today (${todayStr})`);
+      this.logger.error(
+        `❌ ${fieldName}: ${dateStr} is before today (${todayStr})`,
+      );
       throw new Error(
         `Cannot create reservation for past dates. ${fieldName} (${dateStr}) is before today (${todayStr}).`,
       );
@@ -141,8 +156,9 @@ export class DateUtilsService {
   validateDateRange(from: string, to: string): void {
     if (new Date(to) <= new Date(from)) {
       this.logger.error(`❌ Invalid date range: 'to' must be after 'from'`);
-      throw new Error(`Invalid date range: 'to' (${to}) must be after 'from' (${from})`);
+      throw new Error(
+        `Invalid date range: 'to' (${to}) must be after 'from' (${from})`,
+      );
     }
   }
 }
-

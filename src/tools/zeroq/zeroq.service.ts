@@ -7,10 +7,13 @@ import {
   OfficeDetails,
   OfficeDetailsDTO,
   BlockDay,
+  BlockDayResponse,
+  AvailableBlockDay,
   Reservation,
   ReservationRequest,
   Line,
   OfficeList,
+  TimeBlock,
 } from './types';
 
 @Injectable()
@@ -56,7 +59,7 @@ export class ZeroQService {
         name: response.name,
         timezone: response.timezone,
         reservable: response.reservable,
-        lines: Object.values(response.lines || {}).map(line => ({
+        lines: Object.values(response.lines || {}).map((line) => ({
           id: line.id,
           slug: line.slug,
           name: line.name,
@@ -67,7 +70,10 @@ export class ZeroQService {
 
       return filteredResponse;
     } catch (error) {
-      this.logger.error(`Error getting office details for ${officeSlug}:`, error);
+      this.logger.error(
+        `Error getting office details for ${officeSlug}:`,
+        error,
+      );
       throw new Error(`Failed to get office details for ${officeSlug}`);
     }
   }
@@ -84,12 +90,16 @@ export class ZeroQService {
 
       // Filtrar líneas que no tienen reservas deshabilitadas
       const availableLines = linesArray.filter(
-        (line: any) => !line.meta?.disabled_reserves
+        (line: any) => !line.meta?.disabled_reserves,
       ) as any[];
 
-      this.logger.log(`📋 Found ${availableLines.length} available lines for office "${officeSlug}":`);
+      this.logger.log(
+        `📋 Found ${availableLines.length} available lines for office "${officeSlug}":`,
+      );
       availableLines.forEach((line: any, index: number) => {
-        this.logger.log(`   ${index + 1}. "${line.name}" (slug: "${line.slug}")`);
+        this.logger.log(
+          `   ${index + 1}. "${line.name}" (slug: "${line.slug}")`,
+        );
       });
 
       return availableLines;
@@ -107,14 +117,16 @@ export class ZeroQService {
     lineSlug: string,
     date?: string,
     tz: string = 'America/Santiago',
-  ): Promise<BlockDay[]> {
+  ): Promise<AvailableBlockDay[]> {
     try {
       this.logger.log(`📋 Getting available blocks for: "${lineSlug}"`);
 
       // Advertencia: detectar si se está usando officeSlug en lugar de lineSlug
       const slugParts = lineSlug.split('-');
       if (slugParts.length < 3) {
-        this.logger.warn(`⚠️  lineSlug "${lineSlug}" seems too short. Make sure it's a line slug, not an office slug.`);
+        this.logger.warn(
+          `⚠️  lineSlug "${lineSlug}" seems too short. Make sure it's a line slug, not an office slug.`,
+        );
       }
 
       // Determinar la fecha a consultar
@@ -133,10 +145,14 @@ export class ZeroQService {
       const toDate = targetDate;
       const url = `${this.configService.zeroqBlocksBaseUrl}/blocks/${lineSlug}?from=${fromDate}&to=${toDate}&tz=${tz}`;
 
-      const response = await this.httpService.get<any>(url);
+      const response = await this.httpService.get<
+        BlockDayResponse[] | { data: BlockDayResponse[] }
+      >(url);
 
       // La API puede devolver un array directamente o un objeto con un campo 'data'
-      const blocksData = Array.isArray(response) ? response : (response?.data || []);
+      const blocksData = Array.isArray(response)
+        ? response
+        : response?.data || [];
 
       if (!Array.isArray(blocksData)) {
         this.logger.error('❌ Invalid response format from blocks API');
@@ -144,11 +160,11 @@ export class ZeroQService {
       }
 
       // Filtrar y analizar bloques disponibles
-      const availableDays = blocksData
-        .map((day: any) => {
+      const availableDays: AvailableBlockDay[] = blocksData
+        .map((day: BlockDayResponse): AvailableBlockDay | null => {
           // Filtrar solo bloques con slots disponibles (slots > 0)
-          const availableBlocks = (day.blocks || []).filter(
-            (block: any) => block.slots > 0
+          const availableBlocks: TimeBlock[] = (day.blocks || []).filter(
+            (block: TimeBlock) => block.slots > 0,
           );
 
           if (availableBlocks.length === 0) {
@@ -156,19 +172,28 @@ export class ZeroQService {
           }
 
           return {
-            ...day,
+            date: day.date,
+            isException: day.isException,
+            from: day.from,
+            to: day.to,
+            isRangeConfig: day.isRangeConfig,
             blocks: availableBlocks,
             totalAvailableSlots: availableBlocks.reduce(
-              (sum: number, block: any) => sum + block.slots,
-              0
+              (sum: number, block: TimeBlock) => sum + block.slots,
+              0,
             ),
             availableBlocksCount: availableBlocks.length,
           };
         })
-        .filter((day: any) => day !== null); // Remover días sin bloques disponibles
+        .filter((day): day is AvailableBlockDay => day !== null); // Remover días sin bloques disponibles
 
-      const totalBlocks = availableDays.reduce((sum: number, day: any) => sum + day.availableBlocksCount, 0);
-      this.logger.log(`✅ Found ${availableDays.length} day(s) with ${totalBlocks} available block(s)`);
+      const totalBlocks = availableDays.reduce(
+        (sum: number, day: AvailableBlockDay) => sum + day.availableBlocksCount,
+        0,
+      );
+      this.logger.log(
+        `✅ Found ${availableDays.length} day(s) with ${totalBlocks} available block(s)`,
+      );
 
       return availableDays;
     } catch (error) {
@@ -180,9 +205,7 @@ export class ZeroQService {
   /**
    * Crea una nueva reserva
    */
-  async createReservation(
-    data: ReservationRequest,
-  ): Promise<Reservation> {
+  async createReservation(data: ReservationRequest): Promise<Reservation> {
     try {
       this.logger.log('🔍 Creating reservation...');
 
@@ -196,8 +219,14 @@ export class ZeroQService {
       }
 
       // Validar y normalizar fechas
-      const normalizedFrom = this.dateUtils.validateAndNormalizeDate(data.from, 'from');
-      const normalizedTo = this.dateUtils.validateAndNormalizeDate(data.to, 'to');
+      const normalizedFrom = this.dateUtils.validateAndNormalizeDate(
+        data.from,
+        'from',
+      );
+      const normalizedTo = this.dateUtils.validateAndNormalizeDate(
+        data.to,
+        'to',
+      );
 
       // Validar que 'to' sea después de 'from'
       this.dateUtils.validateDateRange(normalizedFrom, normalizedTo);
@@ -208,9 +237,13 @@ export class ZeroQService {
         to: normalizedTo,
       };
 
-      const response = await this.httpService.post<Reservation>(url, normalizedData, {
-        headers,
-      });
+      const response = await this.httpService.post<Reservation>(
+        url,
+        normalizedData,
+        {
+          headers,
+        },
+      );
 
       this.logger.log(`✅ Reservation created: ${response._id}`);
       return response;
@@ -223,9 +256,7 @@ export class ZeroQService {
   /**
    * Obtiene detalles de una reserva existente
    */
-  async getReservation(
-    reservationId: string,
-  ): Promise<Reservation> {
+  async getReservation(reservationId: string): Promise<Reservation> {
     try {
       const url = `${this.configService.zeroqReservationsBaseUrl}/${reservationId}`;
       const headers: Record<string, string> = {};
@@ -247,4 +278,3 @@ export class ZeroQService {
     }
   }
 }
-

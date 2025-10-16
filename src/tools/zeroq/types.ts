@@ -74,6 +74,22 @@ export interface BlockDay {
   blocks: TimeBlock[];
 }
 
+// Respuesta de la API con bloques disponibles
+export interface BlockDayResponse {
+  date: string;
+  isException: boolean;
+  from: string | null;
+  to: string | null;
+  isRangeConfig: boolean;
+  blocks?: TimeBlock[];
+}
+
+// BlockDay con estadísticas de disponibilidad
+export interface AvailableBlockDay extends BlockDay {
+  totalAvailableSlots: number;
+  availableBlocksCount: number;
+}
+
 export interface ReservationRequest {
   lineSlug: string;
   officeSlug: string;
@@ -137,4 +153,3 @@ export interface Reservation {
   active: boolean;
   available: number;
 }
-
