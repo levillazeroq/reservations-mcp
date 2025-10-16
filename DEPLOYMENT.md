@@ -26,18 +26,18 @@ Esta guía te ayudará a configurar el deployment automático de tu aplicación 
 4. **Copia el token** (solo se muestra una vez)
 5. Guárdalo de forma segura
 
-### Railway Project ID
+### Railway Service ID (IMPORTANTE!)
 
-**Opción A: Desde la Dashboard**
-1. Abre tu proyecto en Railway
-2. Ve a **Settings → General**
-3. Busca **Project ID**
-4. Copia el valor (formato: `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`)
+**Necesitas el SERVICE ID, NO el Project ID**
 
-**Opción B: Desde la URL**
+**Cómo obtenerlo:**
 1. Abre tu proyecto en Railway
-2. La URL tendrá el formato: `https://railway.app/project/[PROJECT_ID]`
-3. Copia el PROJECT_ID de la URL
+2. Abre el **servicio** que quieres deployar
+3. Usa el Command Palette: `Cmd+K` (Mac) o `Ctrl+K` (Windows/Linux)
+4. Escribe "copy" y selecciona **"Copy Service ID"**
+5. El Service ID se copiará al portapapeles
+
+**Formato:** `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`
 
 ---
 
@@ -63,11 +63,11 @@ Protect:     ✅ Marcado
 Mask:        ✅ Marcado
 ```
 
-#### Variable 2: RAILWAY_PROJECT_ID
+#### Variable 2: RAILWAY_SERVICE_ID
 
 ```
-Key:         RAILWAY_PROJECT_ID
-Value:       [tu-project-id]
+Key:         RAILWAY_SERVICE_ID
+Value:       [tu-service-id]
 Type:        Variable
 Environment: All (default)
 Protect:     ✅ Marcado
