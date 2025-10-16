@@ -84,21 +84,16 @@ export class ZeroQService {
     tz: string = 'America/Santiago',
   ): Promise<BlockDay[]> {
     try {
-      this.logger.log(`📋 getAvailableBlocks called with lineSlug: "${lineSlug}"`);
-      this.logger.log(`📋 Received date: ${date || 'undefined (using today)'}`);
+      this.logger.log(`📋 Getting available blocks for: "${lineSlug}"`);
 
       // Advertencia: detectar si se está usando officeSlug en lugar de lineSlug
-      // Los lineSlugs suelen tener el formato: "office-slug-line-name" (con más de 2 partes)
       const slugParts = lineSlug.split('-');
       if (slugParts.length < 3) {
-        this.logger.warn(`⚠️  WARNING: lineSlug "${lineSlug}" parece ser corto. ¿Es un officeSlug en lugar de lineSlug?`);
-        this.logger.warn(`   Los lineSlugs correctos suelen ser: "demo-web-oscar-fila-01" (no solo "demo-web-oscar")`);
+        this.logger.warn(`⚠️  lineSlug "${lineSlug}" seems too short. Make sure it's a line slug, not an office slug.`);
       }
 
       // Helper para convertir cualquier fecha a formato YYYY-MM-DD
       const toSimpleDate = (dateInput: string | Date): string => {
-        this.logger.debug(`🔍 toSimpleDate input: ${JSON.stringify(dateInput)}, type: ${typeof dateInput}`);
-
         let month: number;
         let day: number;
         const currentYear = new Date().getFullYear();
@@ -107,7 +102,6 @@ export class ZeroQService {
           // Si es string, verificar formato
           if (dateInput.match(/^\d{4}-\d{2}-\d{2}$/)) {
             // Formato YYYY-MM-DD completo (ej: "2025-10-17" o "2023-10-17")
-            this.logger.debug(`✅ Format detected: YYYY-MM-DD`);
             const parts = dateInput.split('-');
             const inputYear = parseInt(parts[0], 10);
             month = parseInt(parts[1], 10);
@@ -115,17 +109,15 @@ export class ZeroQService {
 
             // ⚠️ FORZAR AÑO ACTUAL si el año recibido no es el actual
             if (inputYear !== currentYear) {
-              this.logger.warn(`⚠️  Year ${inputYear} detected, forcing current year: ${currentYear}`);
+              this.logger.warn(`⚠️  Year ${inputYear} adjusted to ${currentYear}`);
             }
           } else if (dateInput.match(/^\d{2}-\d{2}$/)) {
             // Formato MM-DD sin año (ej: "10-17"), usar año actual
-            this.logger.log(`📅 Date without year detected. Using current year: ${currentYear}`);
             const parts = dateInput.split('-');
             month = parseInt(parts[0], 10);
             day = parseInt(parts[1], 10);
           } else if (dateInput.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
             // Formato MM/DD/YYYY o M/D/YYYY
-            this.logger.debug(`✅ Format detected: MM/DD/YYYY`);
             const parts = dateInput.split('/');
             const inputYear = parseInt(parts[2], 10);
             month = parseInt(parts[0], 10);
@@ -133,11 +125,10 @@ export class ZeroQService {
 
             // ⚠️ FORZAR AÑO ACTUAL si el año recibido no es el actual
             if (inputYear !== currentYear) {
-              this.logger.warn(`⚠️  Year ${inputYear} detected, forcing current year: ${currentYear}`);
+              this.logger.warn(`⚠️  Year ${inputYear} adjusted to ${currentYear}`);
             }
           } else {
             // Intentar parsear como ISO o timestamp
-            this.logger.debug(`⚠️  Unknown format, attempting to parse: "${dateInput}"`);
             const d = new Date(dateInput);
 
             if (isNaN(d.getTime())) {
@@ -150,7 +141,7 @@ export class ZeroQService {
             // ⚠️ FORZAR AÑO ACTUAL
             const inputYear = d.getFullYear();
             if (inputYear !== currentYear) {
-              this.logger.warn(`⚠️  Year ${inputYear} detected, forcing current year: ${currentYear}`);
+              this.logger.warn(`⚠️  Year ${inputYear} adjusted to ${currentYear}`);
             }
           }
         } else {
@@ -162,65 +153,45 @@ export class ZeroQService {
           // ⚠️ FORZAR AÑO ACTUAL
           const inputYear = d.getFullYear();
           if (inputYear !== currentYear) {
-            this.logger.warn(`⚠️  Year ${inputYear} detected, forcing current year: ${currentYear}`);
+            this.logger.warn(`⚠️  Year ${inputYear} adjusted to ${currentYear}`);
           }
         }
 
         // ⭐ SIEMPRE USAR AÑO ACTUAL
-        const result = `${currentYear}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        this.logger.debug(`✅ toSimpleDate result: ${result}`);
-        return result;
+        return `${currentYear}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       };
 
       // Determinar la fecha a consultar
       let targetDate: string;
       if (date) {
-        // Si se proporciona fecha, normalizarla a YYYY-MM-DD
-        this.logger.log(`📅 Processing provided date: "${date}"`);
         targetDate = toSimpleDate(date);
-        this.logger.log(`📅 Using provided date: ${targetDate}`);
       } else {
-        // Si no se proporciona, usar el día actual
-        const now = new Date();
-        targetDate = toSimpleDate(now);
-        this.logger.log(`📅 Using current day: ${targetDate} (${now.toISOString()})`);
+        targetDate = toSimpleDate(new Date());
       }
 
       // ⚠️ VALIDAR: La fecha NO debe ser anterior al día de hoy
       const today = new Date();
-      today.setHours(0, 0, 0, 0); // Resetear a medianoche para comparar solo fechas
-
+      today.setHours(0, 0, 0, 0);
       const targetDateObj = new Date(targetDate + 'T00:00:00');
-
+      
       if (targetDateObj < today) {
         const todayStr = today.toISOString().split('T')[0];
-        this.logger.error(`❌ Date validation failed: ${targetDate} is before today (${todayStr})`);
+        this.logger.error(`❌ Date ${targetDate} is before today (${todayStr})`);
         throw new Error(`Cannot query blocks for past dates. Date ${targetDate} is before today (${todayStr}). Please provide a current or future date.`);
       }
-
-      this.logger.log(`✅ Date validation passed: ${targetDate} is valid (>= today)`);
 
       // La API de ZeroQ requiere from=YYYY-MM-DD&to=YYYY-MM-DD para consultar un día completo
       const fromDate = targetDate;
       const toDate = targetDate;
-
       const url = `${this.configService.zeroqBlocksBaseUrl}/blocks/${lineSlug}?from=${fromDate}&to=${toDate}&tz=${tz}`;
 
-      this.logger.log(`🔍 Querying blocks from ${fromDate} to ${toDate}`);
-      this.logger.log(`🌐 Full URL: ${url}`);
-
       const response = await this.httpService.get<any>(url);
-
-      this.logger.debug(`📦 Response type: ${typeof response}`);
-      this.logger.debug(`📦 Response is array: ${Array.isArray(response)}`);
-      this.logger.debug(`📦 Response keys: ${response ? Object.keys(response).join(', ') : 'null'}`);
-      this.logger.debug(`📦 Response sample: ${JSON.stringify(response).substring(0, 200)}`);
 
       // La API puede devolver un array directamente o un objeto con un campo 'data'
       const blocksData = Array.isArray(response) ? response : (response?.data || []);
 
       if (!Array.isArray(blocksData)) {
-        this.logger.error('❌ Response is not an array and has no data field');
+        this.logger.error('❌ Invalid response format from blocks API');
         throw new Error('Invalid response format from blocks API');
       }
 
@@ -248,9 +219,8 @@ export class ZeroQService {
         })
         .filter((day: any) => day !== null); // Remover días sin bloques disponibles
 
-      this.logger.log(
-        `✅ Found ${availableDays.length} days with available blocks (${availableDays.reduce((sum: number, day: any) => sum + day.availableBlocksCount, 0)} total blocks)`
-      );
+      const totalBlocks = availableDays.reduce((sum: number, day: any) => sum + day.availableBlocksCount, 0);
+      this.logger.log(`✅ Found ${availableDays.length} day(s) with ${totalBlocks} available block(s)`);
 
       return availableDays;
     } catch (error) {
@@ -266,10 +236,7 @@ export class ZeroQService {
     data: ReservationRequest,
   ): Promise<Reservation> {
     try {
-      this.logger.log('🔍 ============ CREATE RESERVATION START ============');
-      this.logger.log('📥 Received data:', JSON.stringify(data, null, 2));
-      this.logger.log(`📅 Original from: "${data.from}" (type: ${typeof data.from})`);
-      this.logger.log(`📅 Original to: "${data.to}" (type: ${typeof data.to})`);
+      this.logger.log('🔍 Creating reservation...');
 
       const url = this.configService.zeroqReservationsBaseUrl;
       const headers: Record<string, string> = {};
@@ -282,8 +249,6 @@ export class ZeroQService {
 
       // Helper para validar y normalizar fechas con año actual forzado
       const validateAndNormalizeDate = (dateInput: string | Date, fieldName: string): string => {
-        this.logger.debug(`🔍 Validating ${fieldName}: ${JSON.stringify(dateInput)}`);
-
         const currentYear = new Date().getFullYear();
         let parsedDate = new Date(dateInput);
 
@@ -294,15 +259,12 @@ export class ZeroQService {
 
         // Log del año original
         const originalYear = parsedDate.getFullYear();
-        this.logger.debug(`📅 Original year for ${fieldName}: ${originalYear}`);
 
         // ⚠️ FORZAR AÑO ACTUAL si es diferente
         if (originalYear !== currentYear) {
-          this.logger.warn(`⚠️  ${fieldName}: Year ${originalYear} detected, forcing current year: ${currentYear}`);
-
+          this.logger.warn(`⚠️  ${fieldName}: Year ${originalYear} adjusted to ${currentYear}`);
           // Mantener mes, día, hora, minuto, segundo pero cambiar año
           parsedDate.setFullYear(currentYear);
-          this.logger.debug(`✅ ${fieldName} adjusted to current year: ${parsedDate.toISOString()}`);
         }
 
         // ⚠️ VALIDAR: La fecha NO debe ser anterior al día de hoy
@@ -315,11 +277,9 @@ export class ZeroQService {
         if (dateOnly < today) {
           const todayStr = today.toISOString().split('T')[0];
           const dateStr = parsedDate.toISOString().split('T')[0];
-          this.logger.error(`❌ ${fieldName} validation failed: ${dateStr} is before today (${todayStr})`);
+          this.logger.error(`❌ ${fieldName}: ${dateStr} is before today (${todayStr})`);
           throw new Error(`Cannot create reservation for past dates. ${fieldName} (${dateStr}) is before today (${todayStr}).`);
         }
-
-        this.logger.debug(`✅ ${fieldName} validation passed`);
 
         // Retornar en formato ISO 8601 UTC
         return parsedDate.toISOString();
@@ -329,12 +289,9 @@ export class ZeroQService {
       const normalizedFrom = validateAndNormalizeDate(data.from, 'from');
       const normalizedTo = validateAndNormalizeDate(data.to, 'to');
 
-      this.logger.log(`✅ Normalized from: ${normalizedFrom}`);
-      this.logger.log(`✅ Normalized to: ${normalizedTo}`);
-
       // Validar que 'to' sea después de 'from'
       if (new Date(normalizedTo) <= new Date(normalizedFrom)) {
-        this.logger.error(`❌ Date range validation failed: 'to' must be after 'from'`);
+        this.logger.error(`❌ Invalid date range: 'to' must be after 'from'`);
         throw new Error(`Invalid date range: 'to' (${normalizedTo}) must be after 'from' (${normalizedFrom})`);
       }
 
@@ -344,21 +301,14 @@ export class ZeroQService {
         to: normalizedTo,
       };
 
-      // Log del payload completo que se enviará
-      this.logger.log('📤 Sending reservation request to:', url);
-      this.logger.log('📦 Final payload:', JSON.stringify(normalizedData, null, 2));
-      this.logger.log('🔑 Headers:', JSON.stringify(headers, null, 2));
-
       const response = await this.httpService.post<Reservation>(url, normalizedData, {
         headers,
       });
 
-      this.logger.log('✅ Reservation created successfully:', response._id);
-      this.logger.log('🔍 ============ CREATE RESERVATION END ============');
+      this.logger.log(`✅ Reservation created: ${response._id}`);
       return response;
     } catch (error) {
-      this.logger.error('❌ Error creating reservation:', error);
-      this.logger.error('🔍 ============ CREATE RESERVATION FAILED ============');
+      this.logger.error('❌ Failed to create reservation');
       throw error;
     }
   }

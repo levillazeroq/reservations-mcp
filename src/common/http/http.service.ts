@@ -38,9 +38,6 @@ export class HttpService {
   async post<T>(url: string, data: any, options?: AxiosRequestConfig): Promise<T> {
     try {
       this.logger.log(`📤 POST ${url}`);
-      this.logger.log(`📦 ========== FULL REQUEST BODY ==========`);
-      this.logger.log(JSON.stringify(data, null, 2));
-      this.logger.log(`📦 ======================================`);
 
       const headers = {
         'Content-Type': 'application/json;charset=UTF-8',
@@ -48,31 +45,26 @@ export class HttpService {
         ...options?.headers,
       };
 
-      this.logger.debug(`📦 Headers: ${JSON.stringify(headers, null, 2)}`);
-
       const response = await axios.post<T>(url, data, {
         headers,
         ...options,
       });
 
-      this.logger.debug(`📩 Response status: ${response.status} ${response.statusText}`);
-      this.logger.debug(`📩 Response headers: ${JSON.stringify(response.headers, null, 2)}`);
-      this.logger.log(`✅ POST ${url} successful`);
+      this.logger.log(`✅ POST ${url} - Status: ${response.status}`);
 
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
         const axiosError = error as AxiosError;
-        this.logger.error(`📩 Response status: ${axiosError.response?.status} ${axiosError.response?.statusText}`);
-        this.logger.error(`📩 Response body: ${JSON.stringify(axiosError.response?.data)}`);
-        this.logger.error(`POST ${url} failed:`, axiosError.message);
+        this.logger.error(`❌ POST ${url} failed - Status: ${axiosError.response?.status}`);
+        this.logger.error(`📩 Error: ${JSON.stringify(axiosError.response?.data)}`);
 
         throw new Error(
           `HTTP ${axiosError.response?.status}: ${axiosError.response?.statusText} - ${JSON.stringify(axiosError.response?.data)}`,
         );
       }
 
-      this.logger.error(`POST ${url} failed:`, error);
+      this.logger.error(`❌ POST ${url} failed:`, error);
       throw error;
     }
   }
