@@ -86,7 +86,8 @@ deploy:development:
     - if [ -z "$RAILWAY_PROJECT_ID" ]; then echo "❌ Error RAILWAY_PROJECT_ID no configurado" && exit 1; fi
     - echo "✅ Variables verificadas correctamente"
     - echo "📦 Iniciando deployment a Railway..."
-    - railway up --service $RAILWAY_PROJECT_ID
+    - echo "Debug - RAILWAY_TOKEN set:" $(if [ -n "$RAILWAY_TOKEN" ]; then echo "YES"; else echo "NO"; fi)
+    - RAILWAY_TOKEN=$RAILWAY_TOKEN railway up -d
     - echo "✅ Deployment completado exitosamente"
     - echo "🌐 Verifica tu aplicación en Railway Dashboard"
   environment:
@@ -114,7 +115,8 @@ deploy:production:
     - if [ -z "$RAILWAY_PROJECT_ID" ]; then echo "❌ Error RAILWAY_PROJECT_ID no configurado" && exit 1; fi
     - echo "✅ Variables verificadas correctamente"
     - echo "📦 Iniciando deployment a Railway..."
-    - railway up --service $RAILWAY_PROJECT_ID
+    - echo "Debug - RAILWAY_TOKEN set:" $(if [ -n "$RAILWAY_TOKEN" ]; then echo "YES"; else echo "NO"; fi)
+    - RAILWAY_TOKEN=$RAILWAY_TOKEN railway up -d
     - echo "✅ Deployment a producción completado exitosamente"
     - echo "🌐 Verifica tu aplicación en Railway Dashboard"
   environment:
