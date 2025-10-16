@@ -66,80 +66,58 @@ build:
 #   allow_failure: true  # No bloquear deploy si falla el linting
 
 # =============================================================================
-# STAGE: Deploy
+# STAGE: Deploy (Build & Push Docker Image)
 # =============================================================================
-# Deploy a Railway - Ambiente de Desarrollo
-deploy:development:
+# Construir imagen Docker y pushear a GitLab Container Registry
+docker:build:
   stage: deploy
-  image: node:22-slim
+  image: docker:24-cli
+  services:
+    - docker:24-dind
   variables:
-    RAILWAY_TOKEN: $RAILWAY_TOKEN
+    DOCKER_TLS_CERTDIR: "/certs"
+    IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+    IMAGE_LATEST: $CI_REGISTRY_IMAGE:latest
   before_script:
-    # Instalar Railway CLI vía npm
-    - echo "📥 Instalando Railway CLI..."
-    - npm install -g @railway/cli
-    - echo "✅ Railway CLI instalado"
+    - echo "🔐 Autenticando con GitLab Container Registry..."
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
   script:
-    - echo "🚀 Desplegando a Railway (Development)..."
-    - echo "🔍 Verificando variables de entorno..."
-    - if [ -z "$RAILWAY_TOKEN" ]; then echo "❌ Error RAILWAY_TOKEN no configurado" && exit 1; fi
-    - if [ -z "$RAILWAY_PROJECT_ID" ]; then echo "❌ Error RAILWAY_PROJECT_ID no configurado" && exit 1; fi
-    - echo "✅ Variables verificadas correctamente"
-    - echo "📦 Iniciando deployment a Railway..."
-    - echo "Debug - RAILWAY_TOKEN set:" $(if [ -n "$RAILWAY_TOKEN" ]; then echo "YES"; else echo "NO"; fi)
-    - RAILWAY_TOKEN=$RAILWAY_TOKEN railway up -d
-    - echo "✅ Deployment completado exitosamente"
-    - echo "🌐 Verifica tu aplicación en Railway Dashboard"
-  environment:
-    name: development
-    url: https://your-app.railway.app  # Actualiza con tu URL real
-  only:
-    - develop
-  when: manual  # Requiere confirmación manual para deploy
-
-# Deploy a Railway - Ambiente de Producción
-# Basado en: https://blog.railway.com/p/gitlab-ci-cd
-deploy:production:
-  stage: deploy
-  image: ghcr.io/railwayapp/cli:latest
-  script:
-    - echo "🚀 Desplegando a Railway (Production)..."
-    - echo "🔍 Verificando variables de entorno..."
-    - if [ -z "$RAILWAY_TOKEN" ]; then echo "❌ Error RAILWAY_TOKEN no configurado" && exit 1; fi
-    - if [ -z "$RAILWAY_SERVICE_ID" ]; then echo "❌ Error RAILWAY_SERVICE_ID no configurado" && exit 1; fi
-    - echo "✅ Variables verificadas correctamente"
-    - echo "📦 Iniciando deployment a Railway..."
-    - railway up --service=$RAILWAY_SERVICE_ID
-    - echo "✅ Deployment a producción completado exitosamente"
-    - echo "🌐 Verifica tu aplicación en Railway Dashboard"
-  environment:
-    name: production
-    url: https://your-app.railway.app  # Actualiza con tu URL real
+    - echo "🏗️ Construyendo imagen Docker..."
+    - echo "📦 Image tag:$IMAGE_TAG"
+    - docker build -t $IMAGE_TAG -t $IMAGE_LATEST .
+    - echo "📤 Pusheando imagen a GitLab Container Registry..."
+    - docker push $IMAGE_TAG
+    - docker push $IMAGE_LATEST
+    - echo "✅ Imagen publicada exitosamente"
+    - echo "🎯 Imagen disponible en:$CI_REGISTRY_IMAGE"
+    - echo "📌 Tag SHA:$CI_COMMIT_SHORT_SHA"
+    - echo "📌 Tag Latest: latest"
   only:
     - main
     - master
-  when: manual  # Requiere confirmación manual para deploy a producción
+  when: manual  # Requiere confirmación manual
 
 # =============================================================================
 # Notas de Configuración
 # =============================================================================
-# Variables de entorno requeridas en GitLab CI/CD Settings:
+# Este pipeline construye una imagen Docker y la pushea al GitLab Container Registry
+# Railway puede conectarse directamente a esta imagen
 #
-# 1. RAILWAY_TOKEN (Protected, Masked)
-#    - Token de autenticación de Railway
-#    - Obtener en: https://railway.app/account/tokens
+# PASO 1: Ejecutar pipeline en GitLab
+#   - El job "docker:build" construye y pushea la imagen
+#   - La imagen estará disponible en: registry.gitlab.com/zeroq/reservations-mcp
 #
-# 2. RAILWAY_PROJECT_ID (Protected)
-#    - ID del proyecto en Railway
-#    - Encontrar en: Settings -> General de tu proyecto
+# PASO 2: Conectar imagen en Railway
+#   1. Ve a tu proyecto en Railway
+#   2. Click en "Connect Image" 
+#   3. Ingresa: registry.gitlab.com/zeroq/reservations-mcp:latest
+#   4. Configura variables de entorno en Railway (ver env.example)
+#   5. Railway desplegará automáticamente la imagen
 #
-# 3. Variables de la aplicación (opcional, si no las configuras en Railway):
-#    - MCP_PUBLIC_API_KEY
-#    - OPENAI_API_KEY
-#    - OPENAI_MODEL
-#    - ZEROQ_AUTH_TOKEN
-#    - etc.
-#
-# Configurar en: GitLab Project -> Settings -> CI/CD -> Variables
+# PASO 3 (Opcional): Crear Deploy Token en GitLab para Railway
+#   Si el registry es privado:
+#   - GitLab → Settings → Repository → Deploy Tokens
+#   - Crear token con scope: read_registry
+#   - Usar en Railway para autenticación
 # =============================================================================
 
