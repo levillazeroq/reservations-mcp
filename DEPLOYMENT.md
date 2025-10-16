@@ -1,371 +1,441 @@
-# 🚀 Guía de Deployment a Railway usando GitLab CI/CD
+# 🚀 Guía de Deployment a Railway usando GitLab Container Registry
 
-Esta guía te ayudará a configurar el deployment automático de tu aplicación a Railway usando GitLab CI/CD.
+Esta guía te ayudará a desplegar tu aplicación a Railway usando imágenes Docker desde GitLab Container Registry.
 
-## 📋 Requisitos Previos
+## 📋 Resumen del Proceso
 
-### 1. Cuenta y Proyecto en Railway
-- [ ] Cuenta activa en [Railway](https://railway.app)
-- [ ] Proyecto creado en Railway
-- [ ] **Railway Token** generado
-- [ ] **Railway Project ID** disponible
-
-### 2. Repositorio en GitLab
-- [ ] Código en GitLab
-- [ ] Acceso a Settings -> CI/CD
+1. **GitLab CI/CD** construye la imagen Docker
+2. La imagen se pushea al **GitLab Container Registry**
+3. **Railway** pullea y despliega la imagen automáticamente
 
 ---
 
-## 🔧 Paso 1: Obtener Credenciales de Railway
+## 🎯 Ventajas de Este Método
 
-### Railway Token
-
-1. Ve a [Railway Account Settings](https://railway.app/account/tokens)
-2. Click en **"Create New Token"**
-3. Dale un nombre descriptivo: `gitlab-ci-deployment`
-4. **Copia el token** (solo se muestra una vez)
-5. Guárdalo de forma segura
-
-### Railway Service ID (IMPORTANTE!)
-
-**Necesitas el SERVICE ID, NO el Project ID**
-
-**Cómo obtenerlo:**
-1. Abre tu proyecto en Railway
-2. Abre el **servicio** que quieres deployar
-3. Usa el Command Palette: `Cmd+K` (Mac) o `Ctrl+K` (Windows/Linux)
-4. Escribe "copy" y selecciona **"Copy Service ID"**
-5. El Service ID se copiará al portapapeles
-
-**Formato:** `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`
+- ✅ **Más simple** - No requiere Railway CLI ni tokens de Railway en GitLab
+- ✅ **Más confiable** - GitLab maneja el build y caching
+- ✅ **Más control** - Ves todo el proceso de build en GitLab
+- ✅ **Auto-deploy** - Railway se actualiza cuando hay nueva imagen
+- ✅ **Build optimizado** - Multi-stage Dockerfile reduce tamaño de imagen
 
 ---
 
-## 🔐 Paso 2: Configurar Variables en GitLab
+## 🔧 Paso 1: Ejecutar Build en GitLab
 
-### 2.1 Acceder a CI/CD Settings
+### 1.1 Ir a Pipelines
 
 1. Ve a tu proyecto en GitLab
-2. Menú lateral: **Settings → CI/CD**
-3. Expande la sección **Variables**
-4. Click en **Add Variable**
+2. Menú lateral: **CI/CD → Pipelines**
+3. Verás el pipeline más reciente
 
-### 2.2 Agregar Variables Requeridas
+### 1.2 Ejecutar Docker Build
 
-#### Variable 1: RAILWAY_TOKEN
+1. Espera que el stage **`build`** termine (automático, ~1-2 min)
+2. En el stage **`deploy`**, verás el job **`docker:build`**
+3. Click en el botón **▶️ Play** (es manual por seguridad)
+4. El job comenzará a construir la imagen
 
-```
-Key:         RAILWAY_TOKEN
-Value:       [tu-token-de-railway]
-Type:        Variable
-Environment: All (default)
-Protect:     ✅ Marcado
-Mask:        ✅ Marcado
-```
+### 1.3 Monitorear el Build
 
-#### Variable 2: RAILWAY_SERVICE_ID
+El proceso toma **3-5 minutos** y verás:
 
-```
-Key:         RAILWAY_SERVICE_ID
-Value:       [tu-service-id]
-Type:        Variable
-Environment: All (default)
-Protect:     ✅ Marcado
-Mask:        ❌ No marcado
-```
+```bash
+🔐 Autenticando con GitLab Container Registry...
+Login Succeeded
 
-### 2.3 Variables de Aplicación (Opcional)
+🏗️ Construyendo imagen Docker...
+📦 Image tag - registry.gitlab.com/zeroq/reservations-mcp:abc1234
+[+] Building Docker image...
+  ✓ Stage 1: Build (instalar deps, compilar TypeScript)
+  ✓ Stage 2: Production (imagen optimizada)
 
-Si no has configurado estas variables directamente en Railway, agrégalas en GitLab:
+📤 Pusheando imagen a GitLab Container Registry...
+The push refers to repository [registry.gitlab.com/zeroq/reservations-mcp]
+latest: digest: sha256:xxxxx size: 1234
 
-#### MCP_PUBLIC_API_KEY
+✅ Imagen publicada exitosamente
+🎯 Imagen disponible en - registry.gitlab.com/zeroq/reservations-mcp
+📌 Tag SHA - abc1234
+📌 Tag Latest - latest
 ```
-Key:         MCP_PUBLIC_API_KEY
-Value:       [tu-api-key-segura]
-Protect:     ✅ Marcado
-Mask:        ✅ Marcado
-```
-
-#### OPENAI_API_KEY
-```
-Key:         OPENAI_API_KEY
-Value:       sk-...
-Protect:     ✅ Marcado
-Mask:        ✅ Marcado
-```
-
-#### OPENAI_MODEL
-```
-Key:         OPENAI_MODEL
-Value:       gpt-4o-mini
-Protect:     ❌ No marcado
-Mask:        ❌ No marcado
-```
-
-#### ZEROQ_AUTH_TOKEN (si aplica)
-```
-Key:         ZEROQ_AUTH_TOKEN
-Value:       [tu-token-zeroq]
-Protect:     ✅ Marcado
-Mask:        ✅ Marcado
-```
-
-#### Otras variables requeridas:
-- `MCP_TZ` (ej: America/Santiago)
-- `OPENAI_MAX_TOKENS` (ej: 2000)
-- `OPENAI_TEMPERATURE` (ej: 0.7)
-- `NODE_ENV` (production)
-- `LOG_LEVEL` (info)
 
 ---
 
-## 🏗️ Paso 3: Configurar Railway
+## 🚂 Paso 2: Conectar Imagen en Railway
 
-### 3.1 Variables de Entorno en Railway
+### 2.1 Acceder a tu Proyecto
 
-1. Ve a tu proyecto en Railway
-2. Click en tu servicio
-3. Ve a **Variables**
-4. Agrega las variables necesarias (las mismas del `env.example`):
+1. Ve a [Railway Dashboard](https://railway.app)
+2. Abre tu proyecto
+3. Si aún no tienes un servicio, click en **"New Service"** o **"Add a Service"**
+
+### 2.2 Conectar la Imagen Docker
+
+1. En el servicio, ve a **Settings → Source**
+2. Click en **"Connect Image"** o **"Deploy from Image"**
+3. Ingresa la URL de tu imagen:
+   ```
+   registry.gitlab.com/zeroq/reservations-mcp:latest
+   ```
+
+### 2.3 Autenticación (Si el Registry es Privado)
+
+Si Railway te pide credenciales, necesitas crear un **Deploy Token** en GitLab:
+
+#### A. Crear Deploy Token en GitLab
+
+1. Ve a **GitLab → Settings → Repository → Deploy Tokens**
+2. Click en **"Add token"**
+3. Configuración:
+   ```
+   Name:        railway-deploy
+   Expiration:  (opcional, déjalo vacío o pon fecha lejana)
+   Scopes:      ✅ read_registry
+   ```
+4. Click en **"Create deploy token"**
+5. **¡IMPORTANTE!** Copia el **username** y **token** inmediatamente
+   - Solo se muestran una vez
+   - Formato username: `gitlab+deploy-token-xxxxx`
+   - Formato token: `gldt-xxxxxxxxxx`
+
+#### B. Configurar en Railway
+
+1. En Railway, cuando conectes la imagen, te pedirá autenticación
+2. Ingresa:
+   ```
+   Registry Username: gitlab+deploy-token-xxxxx
+   Registry Password: gldt-xxxxxxxxxx
+   ```
+3. Railway validará las credenciales
+
+### 2.4 Configurar Variables de Entorno
+
+En Railway → Tu Servicio → **Variables**, agrega todas las variables necesarias:
 
 ```bash
-MCP_PUBLIC_API_KEY=your-secure-key
+# Seguridad
+MCP_PUBLIC_API_KEY=tu-key-segura
+
+# OpenAI
 OPENAI_API_KEY=sk-...
 OPENAI_MODEL=gpt-4o-mini
 OPENAI_MAX_TOKENS=2000
 OPENAI_TEMPERATURE=0.7
-MCP_TZ=America/Santiago
+
+# ZeroQ APIs
 ZEROQ_BASE_URL=https://zeroq.cl
 ZEROQ_API_BASE_URL=https://zeroq.cl/api
 ZEROQ_RESERVATIONS_BASE_URL=https://zeroq.cl/services/reservations/api/v3
 ZEROQ_BLOCKS_BASE_URL=https://services.zeroq.cl/reservations/api/v3
-ZEROQ_AUTH_TOKEN=your-token-if-needed
-LOG_LEVEL=info
+ZEROQ_AUTH_TOKEN=(si lo tienes)
+
+# General
+MCP_TZ=America/Santiago
 NODE_ENV=production
+LOG_LEVEL=info
 ```
 
-### 3.2 Configurar Build Settings
+### 2.5 Configurar Puerto (Opcional)
 
-Railway debería detectar automáticamente el Dockerfile, pero verifica:
+Railway detecta automáticamente el puerto del Dockerfile (`3030`), pero si necesitas cambiarlo:
 
-1. **Build Configuration:**
-   - Builder: `Dockerfile`
-   - Build Command: (vacío, usa Dockerfile)
+1. En Railway → Variables
+2. Agrega:
+   ```
+   PORT=3030
+   ```
 
-2. **Deploy Configuration:**
-   - Start Command: (vacío, usa Dockerfile CMD)
-
-3. **Health Check:**
-   - Path: `/health`
-   - Port: El puerto será asignado automáticamente por Railway ($PORT)
+Railway expone automáticamente este puerto al público.
 
 ---
 
-## 🚀 Paso 4: Ejecutar Deployment
+## ✅ Paso 3: Verificar el Deployment
 
-### 4.1 Primera vez (Setup Inicial)
+### 3.1 En Railway
 
-1. Haz commit del archivo `.gitlab-ci.yml`:
-   ```bash
-   git add .gitlab-ci.yml
-   git commit -m "feat: add Railway deployment pipeline"
-   git push origin develop
+1. Ve a **Deployments** en tu servicio
+2. Deberías ver el deployment en progreso
+3. Espera 2-3 minutos mientras:
+   - Railway pullea la imagen
+   - Inicia el contenedor
+   - Ejecuta health checks
+
+### 3.2 Verificar Logs
+
+1. Click en el deployment activo
+2. Ve a **View Logs**
+3. Deberías ver:
+   ```
+   [Nest] Starting Nest application...
+   [Nest] MCP Tools Reserve initialized
+   [Nest] Application is running on: http://0.0.0.0:3030
    ```
 
-2. Ve a **GitLab → CI/CD → Pipelines**
-3. Verás el pipeline corriendo automáticamente
-4. El stage `build` y `lint` se ejecutarán automáticamente
-5. El stage `deploy:development` estará en estado **manual**
+### 3.3 Obtener URL Pública
 
-### 4.2 Deploy a Development
+1. En Railway, ve a **Settings → Domains**
+2. Railway genera automáticamente una URL:
+   ```
+   https://[tu-servicio].railway.app
+   ```
+3. O puedes agregar un dominio custom
 
-1. Ve a **GitLab → CI/CD → Pipelines**
-2. Click en el pipeline más reciente
-3. En el stage `deploy`, click en el botón **▶️ Play** del job `deploy:development`
-4. Confirma el deployment
-5. Espera a que termine (2-5 minutos)
+### 3.4 Probar la Aplicación
 
-### 4.3 Deploy a Production
+#### Health Check
+```bash
+curl https://[tu-servicio].railway.app/health
+```
 
-1. Haz merge de `develop` a `main` o `master`
-2. Ve a **GitLab → CI/CD → Pipelines**
-3. Click en el pipeline de la rama `main`/`master`
-4. En el stage `deploy`, click en el botón **▶️ Play** del job `deploy:production`
-5. Confirma el deployment
-6. Espera a que termine
+**Respuesta esperada:**
+```json
+{
+  "status": "ok",
+  "timestamp": "2025-10-16T...",
+  "uptime": 123.456,
+  "environment": "production",
+  "config": {
+    "port": 3030,
+    "timezone": "America/Santiago",
+    "openai": {
+      "model": "gpt-4o-mini",
+      "maxTokens": 2000
+    },
+    "zeroq": {
+      "configured": true
+    }
+  }
+}
+```
+
+#### Listar Herramientas MCP
+```bash
+curl https://[tu-servicio].railway.app/mcp/tools
+```
+
+**Respuesta esperada:**
+```json
+{
+  "tools": [
+    {
+      "name": "list_web_offices",
+      "description": "Lista todas las oficinas web disponibles"
+    },
+    {
+      "name": "get_office_details",
+      "description": "Obtiene detalles de una oficina específica"
+    },
+    // ... más herramientas
+  ]
+}
+```
 
 ---
 
-## 🔍 Verificación del Deployment
+## 🔄 Workflow de Actualizaciones
 
-### 1. En GitLab
-
-1. Ve al pipeline y verifica que todos los jobs estén en verde ✅
-2. Revisa los logs del job `deploy:development` o `deploy:production`
-3. Busca el mensaje: `✅ Deployment completado exitosamente`
-
-### 2. En Railway
-
-1. Ve a tu proyecto en Railway
-2. Click en tu servicio
-3. Ve a **Deployments**
-4. Verifica que el último deployment esté activo
-5. Click en el deployment para ver logs en tiempo real
-
-### 3. Verificar la Aplicación
-
-1. Obtén la URL de tu aplicación en Railway:
-   - Railway Dashboard → Tu servicio → Settings → Domains
-   - URL generada: `https://[tu-app].railway.app`
-
-2. Verifica el health check:
-   ```bash
-   curl https://[tu-app].railway.app/health
-   ```
-   
-   Respuesta esperada:
-   ```json
-   {
-     "status": "ok",
-     "timestamp": "2025-10-16T...",
-     "uptime": 123.456,
-     "environment": "production"
-   }
-   ```
-
-3. Verifica el endpoint de documentación MCP:
-   ```bash
-   curl https://[tu-app].railway.app/mcp/tools
-   ```
-
----
-
-## 🎯 Flujo de Trabajo Recomendado
-
-### Para Features Nuevos
+### Cuando hagas cambios al código:
 
 ```bash
-# 1. Crear rama de feature
-git checkout -b feature/nueva-funcionalidad
-
-# 2. Desarrollar y commitear
+# 1. Hacer cambios y commit
 git add .
-git commit -m "feat: descripción del cambio"
+git commit -m "feat: nueva funcionalidad"
+git push origin main
 
-# 3. Push a GitLab
-git push origin feature/nueva-funcionalidad
+# 2. GitLab CI/CD automáticamente:
+#    - Ejecuta el build
+#    - Espera tu confirmación en docker:build
 
-# 4. Crear Merge Request a develop
-# (desde la interfaz de GitLab)
+# 3. En GitLab → Pipelines:
+#    - Click en ▶️ Play en docker:build
+#    - Espera que termine (3-5 min)
 
-# 5. Una vez aprobado y mergeado a develop:
-# El pipeline se ejecutará automáticamente
-# Deploy a development es MANUAL - click en Play
-
-# 6. Probar en el ambiente de development
-
-# 7. Si todo está OK, crear Merge Request de develop a main
-# Deploy a production es MANUAL - click en Play
+# 4. Railway automáticamente:
+#    - Detecta la nueva imagen
+#    - Pullea la imagen actualizada
+#    - Redeploya el servicio
+#    - ¡Listo! 🎉
 ```
+
+### Auto-redeploy en Railway
+
+Railway puede configurarse para hacer redeploy automático:
+
+1. Ve a **Settings → Deployments**
+2. Activa **"Watch for image changes"**
+3. Railway checkeará el registry periódicamente
+4. Cuando detecte nueva imagen con tag `latest`, redeployará automáticamente
 
 ---
 
 ## 🐛 Troubleshooting
 
-### Error: "RAILWAY_TOKEN no está configurado"
+### Build falla en GitLab
+
+**Error: "Could not find TypeScript configuration file"**
+
+✅ **Solución:** Ya está resuelto. Los archivos `tsconfig.json`, `tsconfig.build.json` y `nest-cli.json` están incluidos en la imagen.
+
+**Error: "docker: command not found"**
+
+✅ **Solución:** El pipeline usa `image: docker:24-cli` y `services: docker:24-dind`. No necesitas hacer nada.
+
+### Railway no puede pullear la imagen
+
+**Error: "authentication required"**
 
 **Solución:**
-1. Verifica que agregaste `RAILWAY_TOKEN` en GitLab → Settings → CI/CD → Variables
-2. Verifica que la variable esté marcada como **Protected**
-3. Si estás en una rama no protegida, desactiva temporalmente "Protected"
-
-### Error: "railway: command not found"
-
-**Solución:**
-- El pipeline instala Railway CLI automáticamente
-- Si ves este error, verifica que el stage `before_script` se esté ejecutando
-
-### El deployment tarda mucho
-
-**Causas comunes:**
-1. **Primera vez:** Railway está construyendo la imagen Docker (5-10 min)
-2. **Build cache:** Posteriores builds serán más rápidos (2-3 min)
-3. **Dependencias grandes:** El build de node_modules puede tardar
+1. Crea un Deploy Token en GitLab (ver Paso 2.3)
+2. Usa las credenciales en Railway
+3. Verifica que el token tenga el scope `read_registry`
 
 ### La aplicación no inicia en Railway
 
 **Verificar:**
-1. **Logs en Railway:** Ve a Deployments → Click en el deployment → View Logs
-2. **Variables de entorno:** Verifica que todas las variables necesarias estén configuradas
-3. **Health check:** Verifica que `/health` responda correctamente
-4. **Puerto:** Railway asigna automáticamente el puerto via `$PORT`
 
-### Error: "Build failed"
+1. **Logs en Railway:**
+   - Ve a Deployments → Click en el deployment → View Logs
+   - Busca errores de inicio
 
-**Solución:**
-1. Revisa los logs del job `build` en GitLab
-2. Ejecuta localmente: `yarn build`
-3. Corrige errores de TypeScript
-4. Commitea y pushea de nuevo
+2. **Variables de entorno:**
+   - Verifica que todas las variables estén configuradas
+   - Especialmente `OPENAI_API_KEY` y `MCP_PUBLIC_API_KEY`
 
----
+3. **Puerto:**
+   - Railway detecta automáticamente el puerto 3030
+   - Si cambias el puerto, actualiza también el Dockerfile
 
-## 📊 Configuración de Environments en GitLab
+4. **Health check:**
+   - El Dockerfile tiene un health check en `/health`
+   - Railway lo usa para verificar que la app esté funcionando
 
-Para una mejor visualización de los deployments:
+### Railway muestra "Crashed"
 
-1. Ve a **GitLab → Deployments → Environments**
-2. Configura las URLs:
-   - **development:** URL de Railway del ambiente de desarrollo
-   - **production:** URL de Railway del ambiente de producción
+**Causas comunes:**
 
----
+1. **Variables de entorno faltantes**
+   - Revisa los logs para ver qué variable falta
+   - Agrega en Railway → Variables
 
-## 🔄 Actualizaciones del Pipeline
+2. **Error en el código**
+   - Revisa los logs de Railway
+   - Verifica que el build en GitLab haya sido exitoso
 
-Si necesitas modificar el pipeline:
-
-1. Edita `.gitlab-ci.yml`
-2. Commitea los cambios:
-   ```bash
-   git add .gitlab-ci.yml
-   git commit -m "ci: actualizar configuración del pipeline"
-   git push
-   ```
-3. El nuevo pipeline se ejecutará automáticamente
+3. **Puerto incorrecto**
+   - Railway asigna `$PORT` automáticamente
+   - El Dockerfile ya está configurado para usar `$PORT`
 
 ---
 
-## 📚 Referencias
+## 📊 Monitoreo y Métricas
 
-- [Railway Docs](https://docs.railway.app/)
-- [Railway CLI](https://docs.railway.app/develop/cli)
-- [GitLab CI/CD Docs](https://docs.gitlab.com/ee/ci/)
-- [GitLab CI/CD Variables](https://docs.gitlab.com/ee/ci/variables/)
+### En Railway
+
+1. **Deployments:** Historial de deployments y rollback
+2. **Metrics:** CPU, memoria, requests
+3. **Logs:** Logs en tiempo real y históricos
+4. **Events:** Eventos del servicio
+
+### Health Checks
+
+El Dockerfile incluye un health check automático:
+
+```dockerfile
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD curl -f http://localhost:${PORT}/health || exit 1
+```
+
+Railway usa esto para:
+- Verificar que la app esté funcionando
+- Reiniciar automáticamente si falla
+- Mostrar status en la dashboard
 
 ---
 
-## ✅ Checklist Final
+## 🔒 Seguridad
 
-Antes de hacer el primer deployment, verifica:
+### Mejores Prácticas
 
-- [ ] Railway Token generado y agregado en GitLab
-- [ ] Railway Project ID agregado en GitLab
-- [ ] Variables de entorno configuradas en Railway
-- [ ] Variables de entorno configuradas en GitLab (si es necesario)
-- [ ] Archivo `.gitlab-ci.yml` commiteado y pusheado
-- [ ] Dockerfile presente en el repositorio
-- [ ] Rama `develop` o `main` configurada
-- [ ] Health check endpoint funcionando localmente
-- [ ] URLs de los environments actualizadas en el `.gitlab-ci.yml`
+1. **Variables de entorno sensibles:**
+   - Nunca las commites al código
+   - Configúralas solo en Railway
+   - Usa valores diferentes para dev y prod
+
+2. **Deploy Tokens:**
+   - Usa scopes mínimos (`read_registry` únicamente)
+   - Establece fecha de expiración
+   - Rota regularmente
+
+3. **API Keys:**
+   - Usa API keys específicas para producción
+   - Monitorea uso en OpenAI y ZeroQ
+   - Rota regularmente
+
+4. **Imagen Docker:**
+   - Multi-stage build reduce superficie de ataque
+   - Usuario no-root (`nodejs`) en producción
+   - Solo archivos necesarios en imagen final
+
+---
+
+## 📚 Recursos Adicionales
+
+- [Railway Documentation](https://docs.railway.app/)
+- [GitLab Container Registry Docs](https://docs.gitlab.com/ee/user/packages/container_registry/)
+- [Docker Multi-stage Builds](https://docs.docker.com/build/building/multi-stage/)
+- [NestJS Documentation](https://docs.nestjs.com/)
+
+---
+
+## ✅ Checklist de Deployment
+
+Antes de hacer el deployment, verifica:
+
+### GitLab
+- [ ] Pipeline ejecutándose correctamente
+- [ ] Job `build` termina exitosamente
+- [ ] Job `docker:build` construye y pushea imagen
+- [ ] Imagen visible en GitLab Container Registry
+
+### Railway
+- [ ] Proyecto creado
+- [ ] Servicio conectado a la imagen
+- [ ] Deploy Token configurado (si es privado)
+- [ ] Variables de entorno configuradas
+- [ ] Dominio configurado (opcional)
+
+### Verificación
+- [ ] Health check responde correctamente
+- [ ] Logs muestran inicio exitoso
+- [ ] Endpoints de MCP responden
+- [ ] Sin errores en los logs
 
 ---
 
 ## 🎉 ¡Listo!
 
-Una vez configurado todo, tu aplicación se desplegará automáticamente a Railway cada vez que hagas push a las ramas configuradas (después de aprobar el deployment manual).
+Una vez completado todo, tu aplicación estará:
 
-**Recuerda:** Los deployments son **manuales** por seguridad. Debes hacer click en el botón Play para iniciar cada deployment.
+- ✅ Desplegada en Railway
+- ✅ Accesible públicamente vía HTTPS
+- ✅ Con auto-redeploy cuando pushees cambios
+- ✅ Monitoreada con health checks
+- ✅ Con logs centralizados
 
-Si tienes algún problema, revisa la sección de Troubleshooting o consulta los logs en GitLab y Railway.
+**¡Felicidades por completar el deployment! 🚀**
 
+---
+
+## 📞 Soporte
+
+Si tienes problemas:
+
+1. Revisa los logs en Railway
+2. Verifica el pipeline en GitLab
+3. Consulta la sección de Troubleshooting
+4. Revisa los recursos adicionales
+
+---
+
+**Última actualización:** Octubre 2025
+**Versión del pipeline:** 1.0.0
