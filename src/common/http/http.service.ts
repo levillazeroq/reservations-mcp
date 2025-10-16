@@ -44,10 +44,6 @@ export class HttpService {
         ...options?.headers,
       };
 
-      this.logger.log(`POST ${url}`);
-      this.logger.debug(`📨 Body length: ${body.length} bytes`);
-      this.logger.debug(`📨 First 200 chars: ${body.substring(0, 200)}`);
-      this.logger.debug(`📨 Headers: ${JSON.stringify(headers, null, 2)}`);
 
       const response = await fetch(url, {
         method: 'POST',

@@ -266,6 +266,11 @@ export class ZeroQService {
     data: ReservationRequest,
   ): Promise<Reservation> {
     try {
+      this.logger.log('🔍 ============ CREATE RESERVATION START ============');
+      this.logger.log('📥 Received data:', JSON.stringify(data, null, 2));
+      this.logger.log(`📅 Original from: "${data.from}" (type: ${typeof data.from})`);
+      this.logger.log(`📅 Original to: "${data.to}" (type: ${typeof data.to})`);
+
       const url = this.configService.zeroqReservationsBaseUrl;
       const headers: Record<string, string> = {};
 
@@ -275,17 +280,73 @@ export class ZeroQService {
         headers['authorization'] = authToken;
       }
 
-      // Normalize dates to ISO 8601 UTC format (YYYY-MM-DDTHH:mm:ss.sssZ)
-      // This ensures compatibility with ZeroQ API which requires .000Z format
+      // Helper para validar y normalizar fechas con año actual forzado
+      const validateAndNormalizeDate = (dateInput: string | Date, fieldName: string): string => {
+        this.logger.debug(`🔍 Validating ${fieldName}: ${JSON.stringify(dateInput)}`);
+
+        const currentYear = new Date().getFullYear();
+        let parsedDate = new Date(dateInput);
+
+        if (isNaN(parsedDate.getTime())) {
+          this.logger.error(`❌ Invalid date format for ${fieldName}: "${dateInput}"`);
+          throw new Error(`Invalid date format for ${fieldName}: "${dateInput}"`);
+        }
+
+        // Log del año original
+        const originalYear = parsedDate.getFullYear();
+        this.logger.debug(`📅 Original year for ${fieldName}: ${originalYear}`);
+
+        // ⚠️ FORZAR AÑO ACTUAL si es diferente
+        if (originalYear !== currentYear) {
+          this.logger.warn(`⚠️  ${fieldName}: Year ${originalYear} detected, forcing current year: ${currentYear}`);
+
+          // Mantener mes, día, hora, minuto, segundo pero cambiar año
+          parsedDate.setFullYear(currentYear);
+          this.logger.debug(`✅ ${fieldName} adjusted to current year: ${parsedDate.toISOString()}`);
+        }
+
+        // ⚠️ VALIDAR: La fecha NO debe ser anterior al día de hoy
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Resetear a medianoche
+
+        const dateOnly = new Date(parsedDate);
+        dateOnly.setHours(0, 0, 0, 0); // Comparar solo fechas
+
+        if (dateOnly < today) {
+          const todayStr = today.toISOString().split('T')[0];
+          const dateStr = parsedDate.toISOString().split('T')[0];
+          this.logger.error(`❌ ${fieldName} validation failed: ${dateStr} is before today (${todayStr})`);
+          throw new Error(`Cannot create reservation for past dates. ${fieldName} (${dateStr}) is before today (${todayStr}).`);
+        }
+
+        this.logger.debug(`✅ ${fieldName} validation passed`);
+
+        // Retornar en formato ISO 8601 UTC
+        return parsedDate.toISOString();
+      };
+
+      // Validar y normalizar fechas
+      const normalizedFrom = validateAndNormalizeDate(data.from, 'from');
+      const normalizedTo = validateAndNormalizeDate(data.to, 'to');
+
+      this.logger.log(`✅ Normalized from: ${normalizedFrom}`);
+      this.logger.log(`✅ Normalized to: ${normalizedTo}`);
+
+      // Validar que 'to' sea después de 'from'
+      if (new Date(normalizedTo) <= new Date(normalizedFrom)) {
+        this.logger.error(`❌ Date range validation failed: 'to' must be after 'from'`);
+        throw new Error(`Invalid date range: 'to' (${normalizedTo}) must be after 'from' (${normalizedFrom})`);
+      }
+
       const normalizedData = {
         ...data,
-        from: new Date(data.from).toISOString(),
-        to: new Date(data.to).toISOString(),
+        from: normalizedFrom,
+        to: normalizedTo,
       };
 
       // Log del payload completo que se enviará
       this.logger.log('📤 Sending reservation request to:', url);
-      this.logger.log('📦 Payload:', JSON.stringify(normalizedData, null, 2));
+      this.logger.log('📦 Final payload:', JSON.stringify(normalizedData, null, 2));
       this.logger.log('🔑 Headers:', JSON.stringify(headers, null, 2));
 
       const response = await this.httpService.post<Reservation>(url, normalizedData, {
@@ -293,10 +354,12 @@ export class ZeroQService {
       });
 
       this.logger.log('✅ Reservation created successfully:', response._id);
+      this.logger.log('🔍 ============ CREATE RESERVATION END ============');
       return response;
     } catch (error) {
       this.logger.error('❌ Error creating reservation:', error);
-      throw new Error('Failed to create reservation');
+      this.logger.error('🔍 ============ CREATE RESERVATION FAILED ============');
+      throw error;
     }
   }
 
