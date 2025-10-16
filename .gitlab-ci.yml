@@ -72,6 +72,8 @@ build:
 deploy:development:
   stage: deploy
   image: node:22-slim
+  variables:
+    RAILWAY_TOKEN: $RAILWAY_TOKEN
   before_script:
     # Instalar Railway CLI vía npm
     - echo "📥 Instalando Railway CLI..."
@@ -98,6 +100,8 @@ deploy:development:
 deploy:production:
   stage: deploy
   image: node:22-slim
+  variables:
+    RAILWAY_TOKEN: $RAILWAY_TOKEN
   before_script:
     # Instalar Railway CLI vía npm
     - echo "📥 Instalando Railway CLI..."
