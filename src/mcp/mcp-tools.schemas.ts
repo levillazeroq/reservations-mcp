@@ -93,7 +93,7 @@ export const MCP_TOOLS: MCPTool[] = [
   {
     name: 'getAvailableBlocks',
     description:
-      'Obtiene los bloques de tiempo disponibles para una línea específica en una fecha determinada. El sistema siempre consulta el día completo y retorna solo bloques con slots disponibles (slots > 0). Si no se especifica fecha, usa el día actual.',
+      'Obtiene los bloques de tiempo disponibles para una línea específica en una fecha determinada. El sistema siempre consulta el día completo y retorna solo bloques con slots disponibles (slots > 0). Si no se especifica fecha, usa el día actual. ⚠️ IMPORTANTE: Solo acepta fechas del día actual o futuras, NUNCA fechas pasadas.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -105,7 +105,7 @@ export const MCP_TOOLS: MCPTool[] = [
         date: {
           type: 'string',
           description:
-            'Fecha a consultar en formato YYYY-MM-DD (ej: "2025-10-15"). Opcional: si no se proporciona, se usa el día actual. El sistema consulta el día completo automáticamente.',
+            'Fecha a consultar en formato YYYY-MM-DD (ej: "2025-10-15"). Opcional: si no se proporciona, se usa el día actual. ⚠️ CRÍTICO: La fecha debe ser HOY o FUTURA, nunca fechas pasadas. Validar antes de llamar.',
         },
         tz: {
           type: 'string',
@@ -120,27 +120,27 @@ export const MCP_TOOLS: MCPTool[] = [
   {
     name: 'createReservation',
     description:
-      'Crea una nueva reserva para un bloque de tiempo específico. Requiere información de la persona que reserva y el bloque seleccionado.',
+      'Crea una nueva reserva para un bloque de tiempo específico. Requiere información de la persona que reserva y el bloque seleccionado. ⚠️ IMPORTANTE: Solo acepta reservas para HOY o fechas FUTURAS, nunca fechas pasadas.',
     inputSchema: {
       type: 'object',
       properties: {
         officeSlug: {
           type: 'string',
-          description: 'Slug de la oficina',
+          description: 'Slug de la oficina (obtenido con listWebOffices o getOfficeDetails)',
         },
         lineSlug: {
           type: 'string',
-          description: 'Slug de la línea',
+          description: 'Slug completo de la línea (OBLIGATORIO obtenerlo con getOfficeLines, NO inventar)',
         },
         from: {
           type: 'string',
           description:
-            'Fecha/hora de inicio del bloque en formato ISO 8601 (debe coincidir con un bloque disponible)',
+            'Fecha/hora de inicio del bloque en formato ISO 8601 con .000Z (ej: "2025-10-17T14:00:00.000Z"). Debe coincidir EXACTAMENTE con un bloque obtenido de getAvailableBlocks. ⚠️ CRÍTICO: Validar que la fecha/hora NO sea pasada.',
         },
         to: {
           type: 'string',
           description:
-            'Fecha/hora de fin del bloque en formato ISO 8601',
+            'Fecha/hora de fin del bloque en formato ISO 8601 con .000Z (ej: "2025-10-17T14:30:00.000Z"). Debe coincidir EXACTAMENTE con un bloque obtenido de getAvailableBlocks.',
         },
         personName: {
           type: 'string',

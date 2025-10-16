@@ -5,10 +5,12 @@ import { DateUtilsService } from '../../utils/date-utils.service';
 import {
   Office,
   OfficeDetails,
+  OfficeDetailsDTO,
   BlockDay,
   Reservation,
   ReservationRequest,
   Line,
+  OfficeList,
 } from './types';
 
 @Injectable()
@@ -24,11 +26,15 @@ export class ZeroQService {
   /**
    * Lista todas las oficinas web disponibles
    */
-  async listWebOffices(): Promise<Office[]> {
+  async listWebOffices(): Promise<OfficeList[]> {
     try {
       const url = `${this.configService.zeroqApiBaseUrl}/v3/offices/web`;
       const response = await this.httpService.get<{ data: Office[] }>(url);
-      return response.data;
+      return response.data.map((office) => ({
+        id: office.id,
+        slug: office.slug,
+        name: office.name,
+      }));
     } catch (error) {
       this.logger.error('Error listing web offices:', error);
       throw new Error('Failed to list web offices');
@@ -38,11 +44,28 @@ export class ZeroQService {
   /**
    * Obtiene detalles de una oficina y sus líneas
    */
-  async getOfficeDetails(officeSlug: string): Promise<OfficeDetails> {
+  async getOfficeDetails(officeSlug: string): Promise<OfficeDetailsDTO> {
     try {
       const url = `${this.configService.zeroqApiBaseUrl}/v1/state/${officeSlug}`;
       const response = await this.httpService.get<OfficeDetails>(url);
-      return response;
+
+      // Filtrar solo los atributos necesarios
+      const filteredResponse: OfficeDetailsDTO = {
+        id: response.id,
+        slug: response.slug,
+        name: response.name,
+        timezone: response.timezone,
+        reservable: response.reservable,
+        lines: Object.values(response.lines || {}).map(line => ({
+          id: line.id,
+          slug: line.slug,
+          name: line.name,
+          prefix: line.prefix,
+          type: line.type,
+        })),
+      };
+
+      return filteredResponse;
     } catch (error) {
       this.logger.error(`Error getting office details for ${officeSlug}:`, error);
       throw new Error(`Failed to get office details for ${officeSlug}`);

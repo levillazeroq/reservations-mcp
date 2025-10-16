@@ -19,6 +19,11 @@ export interface Office {
   online: boolean;
 }
 
+export interface OfficeList {
+  id: number;
+  slug: string;
+  name: string;
+}
 export interface Line {
   id: number;
   slug: string;
@@ -26,20 +31,6 @@ export interface Line {
   prefix: string;
   priority: number;
   type: string;
-  queue: number;
-  waiting: number;
-  attending: number;
-  tickets: number;
-  calls: number;
-  weight: number;
-  frozen: boolean;
-  office_slug: string;
-  meta?: {
-    disabled_reserves?: boolean;
-    disabled_virtual_tickets?: boolean;
-    ask_for?: any;
-    keypad?: any;
-  };
 }
 
 export interface OfficeDetails {
@@ -47,23 +38,25 @@ export interface OfficeDetails {
   slug: string;
   name: string;
   category: string;
-  category_id: number;
-  code: string;
-  lat: number;
-  lng: number;
-  location: {
-    city: string;
-    country: string;
-    district: string;
-    office: string;
-    region: string;
-    region_id: number;
-  };
   timezone: string;
-  online: boolean;
   reservable: boolean;
   lines: Record<string, Line>;
-  options?: any;
+}
+
+// DTO limpio para respuestas
+export interface OfficeDetailsDTO {
+  id: number;
+  slug: string;
+  name: string;
+  timezone: string;
+  reservable: boolean;
+  lines: Array<{
+    id: number;
+    slug: string;
+    name: string;
+    prefix: string;
+    type: string;
+  }>;
 }
 
 export interface TimeBlock {
