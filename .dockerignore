@@ -38,6 +38,7 @@ __mocks__
 .gitlab-ci.yml
 .travis.yml
 .circleci
+# nest-cli.json - NECESARIO para Nest build
 
 # Documentation
 *.md
@@ -69,8 +70,8 @@ docker-compose*.yml
 .prettierrc
 .eslintrc.js
 .editorconfig
-tsconfig.build.json
-tsconfig.json
+# tsconfig.build.json - NECESARIO para build
+# tsconfig.json - NECESARIO para build
 jest.config.js
 .prettierignore
 
