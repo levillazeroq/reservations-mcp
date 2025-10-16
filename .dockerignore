@@ -1,0 +1,86 @@
+# Dependencias
+node_modules
+npm-debug.log
+yarn-error.log
+pnpm-debug.log
+
+# Build outputs
+dist
+build
+.next
+out
+
+# Testing
+coverage
+.nyc_output
+*.spec.ts
+*.test.ts
+test
+tests
+__tests__
+__mocks__
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# CI/CD
+.github
+.gitlab-ci.yml
+.travis.yml
+.circleci
+
+# Documentation
+*.md
+!README.md
+docs
+
+# Environment files (no incluir en imagen)
+.env
+.env.local
+.env.*.local
+.env.development
+.env.test
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose.yml
+docker-compose*.yml
+
+# Otros
+.prettierrc
+.eslintrc.js
+.editorconfig
+tsconfig.build.json
+tsconfig.json
+jest.config.js
+.prettierignore
+
+# Cache
+.cache
+.parcel-cache
+.eslintcache
+
+# Temporal
+tmp
+temp
+*.tmp
+
