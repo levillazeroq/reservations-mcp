@@ -14,6 +14,9 @@
 - [Quick Start](#-quick-start)
 - [Arquitectura](#-arquitectura)
 - [Configuración](#-configuración)
+- [Despliegue](#-despliegue)
+  - [Railway](#-railway)
+  - [Docker](#-docker)
 - [Tools Disponibles](#-tools-disponibles)
 - [Endpoints](#-endpoints)
 - [Ejemplos de Uso](#-ejemplos-de-uso)
@@ -196,6 +199,113 @@ mcp-tools-reserve/
 | `OPENAI_TEMPERATURE` | Temperatura del modelo | `0.7` |
 | `MCP_TZ` | Zona horaria | `America/Santiago` |
 | `LOG_LEVEL` | Nivel de logs | `info` |
+
+---
+
+## 🚀 Despliegue
+
+### 🚂 Railway
+
+**Despliegue automático en Railway (recomendado para producción)**
+
+Railway detecta el `Dockerfile` automáticamente y despliega en minutos.
+
+#### Quick Start:
+
+1. **Crear proyecto en Railway**
+   - Ir a [railway.app](https://railway.app/)
+   - New Project → Deploy from GitHub repo
+   - Seleccionar el repositorio
+
+2. **Configurar variables de entorno**
+
+   Copiar las variables de `railway.env.example` al dashboard de Railway:
+
+   ```env
+   PORT=3030
+   NODE_ENV=production
+   ZEROQ_AUTH_TOKEN=tu-token-aqui
+   ZEROQ_BASE_URL=https://zeroq.cl/services/locations/api/v2
+   ZEROQ_BLOCKS_BASE_URL=https://zeroq.cl/services/reserves/api/v2
+   ZEROQ_RESERVATIONS_BASE_URL=https://zeroq.cl/services/reservations/api/v3
+   MCP_PUBLIC_API_KEY=tu-clave-secreta
+   OPENAI_API_KEY=sk-tu-key (opcional)
+   ```
+
+3. **Desplegar**
+
+   Railway despliega automáticamente. En 2-3 minutos tendrás:
+   - ✅ URL pública: `https://tu-proyecto.up.railway.app`
+   - ✅ HTTPS automático
+   - ✅ Health checks configurados
+   - ✅ Logs en tiempo real
+
+4. **Verificar**
+   ```bash
+   curl https://tu-proyecto.up.railway.app/health
+   ```
+
+**📚 Documentación completa:** Ver [RAILWAY_DEPLOY.md](./RAILWAY_DEPLOY.md)
+
+**Características de Railway:**
+- ✅ Node.js 22 LTS
+- ✅ Auto-scaling
+- ✅ Zero-downtime deploys
+- ✅ Gratis para proyectos pequeños ($5 de crédito mensual)
+- ✅ Health checks automáticos
+- ✅ SSL/HTTPS incluido
+
+---
+
+### 🐳 Docker
+
+**Despliegue con Docker para cualquier plataforma**
+
+#### Build y Run:
+
+```bash
+# Build
+docker build -t mcp-tools-reserve .
+
+# Run
+docker run -d \
+  --name mcp-tools-reserve \
+  -p 3030:3030 \
+  -e ZEROQ_AUTH_TOKEN="tu-token" \
+  -e ZEROQ_BASE_URL="https://zeroq.cl/services/locations/api/v2" \
+  -e ZEROQ_BLOCKS_BASE_URL="https://zeroq.cl/services/reserves/api/v2" \
+  -e ZEROQ_RESERVATIONS_BASE_URL="https://zeroq.cl/services/reservations/api/v3" \
+  -e MCP_PUBLIC_API_KEY="tu-clave" \
+  -e OPENAI_API_KEY="sk-tu-key" \
+  --restart unless-stopped \
+  mcp-tools-reserve
+```
+
+#### Con docker-compose:
+
+```yaml
+version: '3.8'
+services:
+  mcp-tools-reserve:
+    build: .
+    ports:
+      - "3030:3030"
+    environment:
+      - NODE_ENV=production
+      - ZEROQ_AUTH_TOKEN=${ZEROQ_AUTH_TOKEN}
+      - ZEROQ_BASE_URL=${ZEROQ_BASE_URL}
+      - ZEROQ_BLOCKS_BASE_URL=${ZEROQ_BLOCKS_BASE_URL}
+      - ZEROQ_RESERVATIONS_BASE_URL=${ZEROQ_RESERVATIONS_BASE_URL}
+      - MCP_PUBLIC_API_KEY=${MCP_PUBLIC_API_KEY}
+    restart: unless-stopped
+```
+
+**Características del Dockerfile:**
+- ✅ Multi-stage build (imagen final ~200MB)
+- ✅ Node.js 22 LTS Alpine
+- ✅ Usuario no-root (seguridad)
+- ✅ Health checks incluidos
+- ✅ dumb-init para señales correctas
 
 ---
 
@@ -692,7 +802,7 @@ curl -X POST http://localhost:3000/mcp/execute \
    - Consultar horarios disponibles
    - Crear reservas
    - Consultar reservas existentes
-   
+
    Siempre confirma los datos antes de crear una reserva.
    ```
 
@@ -706,20 +816,20 @@ curl -X POST http://localhost:3000/mcp/execute \
 
    ```
    👤 Usuario: "Hola, lista las oficinas disponibles"
-   
+
    🤖 Asistente: [Ejecuta listWebOffices automáticamente]
    ```
 
    ```
    👤 Usuario: "Quiero hacer una reserva para mañana a las 10am en demo-web-oscar"
-   
+
    🤖 Asistente: [Ejecuta getOfficeDetails, getOfficeLines, getAvailableBlocks]
                  "Necesito algunos datos para completar la reserva..."
    ```
 
    ```
    👤 Usuario: "Mi nombre es Juan Pérez, email juan@example.com, teléfono +56912345678"
-   
+
    🤖 Asistente: [Ejecuta createReservation]
                  "Reserva creada con éxito. Tu código es: R123456789"
    ```
@@ -776,7 +886,7 @@ curl -X POST http://localhost:3030/mcp/sse \
    ```bash
    # Verifica que el servidor esté corriendo
    ps aux | grep "nest start"
-   
+
    # Si no está corriendo, inícialo
    cd /path/to/mcp-tools-reserve
    yarn start:dev
