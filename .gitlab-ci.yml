@@ -82,23 +82,14 @@ deploy:development:
   script:
     - echo "🚀 Desplegando a Railway (Development)..."
     - echo "📍 Project ID:$RAILWAY_PROJECT_ID"
-    
-    # Verificar que las variables necesarias están configuradas
-    - |
-      if [ -z "$RAILWAY_TOKEN" ]; then
-        echo "❌ Error: RAILWAY_TOKEN no está configurado"
-        exit 1
-      fi
-      
-      if [ -z "$RAILWAY_PROJECT_ID" ]; then
-        echo "❌ Error: RAILWAY_PROJECT_ID no está configurado"
-        exit 1
-      fi
-    
-    # Ejecutar deployment usando Railway CLI
+    - echo "🔍 Verificando variables de entorno..."
+    - if [ -z "$RAILWAY_TOKEN" ]; then echo "❌ Error RAILWAY_TOKEN no configurado" && exit 1; fi
+    - if [ -z "$RAILWAY_PROJECT_ID" ]; then echo "❌ Error RAILWAY_PROJECT_ID no configurado" && exit 1; fi
+    - echo "✅ Variables verificadas correctamente"
+    - echo "🔗 Vinculando proyecto de Railway..."
     - railway link --project $RAILWAY_PROJECT_ID
+    - echo "📦 Iniciando deployment..."
     - railway up --detach
-    
     - echo "✅ Deployment completado exitosamente"
     - echo "🌐 Verifica tu aplicación en Railway Dashboard"
   environment:
@@ -121,24 +112,15 @@ deploy:production:
     - railway --version
   script:
     - echo "🚀 Desplegando a Railway (Production)..."
-    - echo "📍 Project ID: $RAILWAY_PROJECT_ID"
-    
-    # Verificar que las variables necesarias están configuradas
-    - |
-      if [ -z "$RAILWAY_TOKEN" ]; then
-        echo "❌ Error: RAILWAY_TOKEN no está configurado"
-        exit 1
-      fi
-      
-      if [ -z "$RAILWAY_PROJECT_ID" ]; then
-        echo "❌ Error: RAILWAY_PROJECT_ID no está configurado"
-        exit 1
-      fi
-    
-    # Ejecutar deployment usando Railway CLI
+    - echo "📍 Project ID:$RAILWAY_PROJECT_ID"
+    - echo "🔍 Verificando variables de entorno..."
+    - if [ -z "$RAILWAY_TOKEN" ]; then echo "❌ Error RAILWAY_TOKEN no configurado" && exit 1; fi
+    - if [ -z "$RAILWAY_PROJECT_ID" ]; then echo "❌ Error RAILWAY_PROJECT_ID no configurado" && exit 1; fi
+    - echo "✅ Variables verificadas correctamente"
+    - echo "🔗 Vinculando proyecto de Railway..."
     - railway link --project $RAILWAY_PROJECT_ID
+    - echo "📦 Iniciando deployment..."
     - railway up --detach
-    
     - echo "✅ Deployment a producción completado exitosamente"
     - echo "🌐 Verifica tu aplicación en Railway Dashboard"
   environment:
