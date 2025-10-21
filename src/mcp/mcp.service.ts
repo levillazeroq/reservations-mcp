@@ -49,6 +49,10 @@ export class MCPService {
         case 'listWebOffices':
           return await this.zeroqService.listWebOffices();
 
+        case 'searchWebOffices':
+          this.validateRequired(args, ['query']);
+          return await this.zeroqService.searchWebOffices(args.query);
+
         case 'getOfficeDetails':
           this.validateRequired(args, ['officeSlug']);
           return await this.zeroqService.getOfficeDetails(args.officeSlug);

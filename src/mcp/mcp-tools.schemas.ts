@@ -60,6 +60,22 @@ export const MCP_TOOLS: MCPTool[] = [
     },
   },
   {
+    name: 'searchWebOffices',
+    description:
+      'Busca oficinas específicas por slug o nombre usando coincidencia parcial. Ideal para encontrar rápidamente una oficina cuando el usuario menciona un nombre o ubicación. Usa el cache de Redis para búsquedas instantáneas. Retorna las oficinas que coincidan con la búsqueda.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: {
+          type: 'string',
+          description:
+            'Término de búsqueda para filtrar oficinas por slug o nombre. Ejemplos: "demo", "oscar", "caja los andes", "calama". La búsqueda es case-insensitive y permite coincidencias parciales.',
+        },
+      },
+      required: ['query'],
+    },
+  },
+  {
     name: 'getOfficeDetails',
     description:
       'Obtiene detalles completos de una oficina específica por su slug, incluyendo todas sus líneas de atención, configuraciones y estado actual.',

@@ -63,5 +63,14 @@ export class ConfigService {
   get openaiTemperature(): number {
     return parseFloat(process.env.OPENAI_TEMPERATURE || '0.7');
   }
+
+  get redisDsn(): string {
+    return process.env.REDIS_DSN || '';
+  }
+
+  get redisTtl(): number {
+    // TTL por defecto: 8 horas en segundos
+    return parseInt(process.env.REDIS_TTL || '28800', 10);
+  }
 }
 
