@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import moment from 'moment-timezone';
 
 @Injectable()
 export class DateUtilsService {
@@ -160,5 +161,54 @@ export class DateUtilsService {
         `Invalid date range: 'to' (${to}) must be after 'from' (${from})`,
       );
     }
+  }
+
+  /**
+   * Normaliza diferentes formatos de hora a ISO 8601
+   * Soporta: "14:00", "2pm", "14:00:00", "2:30 PM"
+   */
+  normalizeTimeInput(timeInput: string, date: string, tz: string): string {
+    // Normalizar fecha para asegurar año actual
+    const normalizedDate = this.toSimpleDate(date);
+
+    // Detectar si es formato AM/PM
+    const pmMatch = timeInput
+      .toLowerCase()
+      .match(/(\d{1,2}):?(\d{2})?\s*(pm|p)/);
+    const amMatch = timeInput
+      .toLowerCase()
+      .match(/(\d{1,2}):?(\d{2})?\s*(am|a)/);
+
+    let hour: number;
+    let minute: number = 0;
+
+    if (pmMatch) {
+      // Formato PM
+      hour = parseInt(pmMatch[1], 10);
+      minute = pmMatch[2] ? parseInt(pmMatch[2], 10) : 0;
+      if (hour !== 12) {
+        hour += 12;
+      }
+    } else if (amMatch) {
+      // Formato AM
+      hour = parseInt(amMatch[1], 10);
+      minute = amMatch[2] ? parseInt(amMatch[2], 10) : 0;
+      if (hour === 12) {
+        hour = 0;
+      }
+    } else {
+      // Formato 24 horas
+      const parts = timeInput.split(':');
+      hour = parseInt(parts[0], 10);
+      minute = parts[1] ? parseInt(parts[1], 10) : 0;
+    }
+
+    // Crear fecha/hora en la zona horaria especificada
+    const dateTime = moment.tz(
+      `${normalizedDate} ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`,
+      tz,
+    );
+
+    return dateTime.toISOString();
   }
 }

@@ -90,6 +90,14 @@ export interface AvailableBlockDay extends BlockDay {
   availableBlocksCount: number;
 }
 
+// Respuesta de validación de bloque
+export interface BlockValidationResult {
+  available: boolean;
+  message: string;
+  block?: TimeBlock;
+  suggestedBlocks?: TimeBlock[];
+}
+
 export interface ReservationRequest {
   lineSlug: string;
   officeSlug: string;

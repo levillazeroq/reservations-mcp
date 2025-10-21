@@ -16,6 +16,7 @@ import {
   Line,
   OfficeList,
   TimeBlock,
+  BlockValidationResult,
 } from './types';
 
 @Injectable()
@@ -388,6 +389,85 @@ export class ZeroQService {
       return availableDays;
     } catch (error) {
       this.logger.error(`Error getting blocks for line ${lineSlug}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Valida si un bloque de tiempo específico está disponible
+   * Permite especificar hora en diferentes formatos: "14:00", "2pm", "14:00:00"
+   */
+  async validateBlockAvailability(
+    lineSlug: string,
+    fromTime: string,
+    date?: string,
+    tz: string = 'America/Santiago',
+  ): Promise<BlockValidationResult> {
+    try {
+      this.logger.log(
+        `🔍 Validating block availability for: "${lineSlug}" at ${fromTime} (timezone: ${tz})`,
+      );
+
+      // Obtener bloques disponibles para la fecha
+      const availableDays = await this.getAvailableBlocks(lineSlug, date, tz);
+
+      if (availableDays.length === 0) {
+        return {
+          available: false,
+          message: 'No available blocks found for this date',
+          suggestedBlocks: [],
+        };
+      }
+
+      // Trabajar con el primer día (ya que consultamos un día específico)
+      const day = availableDays[0];
+      const blocks = day.blocks;
+
+      // Normalizar la hora solicitada a formato ISO
+      const normalizedFromTime = this.dateUtils.normalizeTimeInput(
+        fromTime,
+        date || moment().tz(tz).format('YYYY-MM-DD'),
+        tz,
+      );
+
+      this.logger.log(`🕒 Normalized time: ${normalizedFromTime}`);
+
+      // Buscar el bloque exacto
+      const exactBlock = blocks.find((block) => {
+        const blockFrom = moment.tz(block.from, tz);
+        const requestedTime = moment.tz(normalizedFromTime, tz);
+        return blockFrom.isSame(requestedTime, 'minute');
+      });
+
+      if (exactBlock && exactBlock.slots > 0) {
+        this.logger.log(
+          `✅ Block available: ${exactBlock.from} - ${exactBlock.to} (${exactBlock.slots} slot${exactBlock.slots > 1 ? 's' : ''})`,
+        );
+        return {
+          available: true,
+          message: `Block is available with ${exactBlock.slots} slot${exactBlock.slots > 1 ? 's' : ''}`,
+          block: exactBlock,
+          suggestedBlocks: [],
+        };
+      }
+
+      // Si no se encuentra el bloque exacto, sugerir bloques cercanos
+      const suggestedBlocks = blocks.slice(0, 5); // Primeros 5 bloques disponibles
+
+      this.logger.warn(
+        `⚠️  Requested block not available. Suggesting ${suggestedBlocks.length} alternative(s)`,
+      );
+
+      return {
+        available: false,
+        message: `Requested block at ${fromTime} is not available`,
+        suggestedBlocks: suggestedBlocks,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Error validating block availability for line ${lineSlug}:`,
+        error,
+      );
       throw error;
     }
   }

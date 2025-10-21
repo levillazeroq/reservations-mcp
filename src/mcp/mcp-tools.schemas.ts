@@ -134,6 +134,38 @@ export const MCP_TOOLS: MCPTool[] = [
     },
   },
   {
+    name: 'validateBlockAvailability',
+    description:
+      'Valida si un bloque de tiempo específico está disponible para una línea y fecha determinada. Ideal para verificar si una hora específica está disponible antes de crear una reserva. Soporta múltiples formatos de hora: "14:00", "2pm", "2:30 PM", "14:30:00". Si el bloque no está disponible, sugiere alternativas cercanas.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        lineSlug: {
+          type: 'string',
+          description:
+            'Slug único de la línea (ej: "demo-web-oscar-fila-01"). IMPORTANTE: Debe ser el slug completo de la línea, no el slug de la oficina.',
+        },
+        fromTime: {
+          type: 'string',
+          description:
+            'Hora a validar. Soporta múltiples formatos: "14:00" (24hrs), "2pm" o "2:00 PM" (12hrs), "14:30:00". Ejemplos: "10:00", "10am", "2:30pm", "14:30".',
+        },
+        date: {
+          type: 'string',
+          description:
+            'Fecha a consultar en formato YYYY-MM-DD (ej: "2025-10-21"). Opcional: si no se proporciona, se usa el día actual. ⚠️ CRÍTICO: La fecha debe ser HOY o FUTURA.',
+        },
+        tz: {
+          type: 'string',
+          description:
+            'Zona horaria (ej: "America/Santiago"). Por defecto: America/Santiago',
+          default: 'America/Santiago',
+        },
+      },
+      required: ['lineSlug', 'fromTime'],
+    },
+  },
+  {
     name: 'createReservation',
     description:
       'Crea una nueva reserva para un bloque de tiempo específico. Requiere información de la persona que reserva y el bloque seleccionado. ⚠️ IMPORTANTE: Solo acepta reservas para HOY o fechas FUTURAS, nunca fechas pasadas.',
