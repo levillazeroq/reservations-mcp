@@ -98,6 +98,20 @@ export interface BlockValidationResult {
   suggestedBlocks?: TimeBlock[];
 }
 
+// Respuesta de bloques próximos con información adicional
+export interface UpcomingBlock extends TimeBlock {
+  date: string;
+  minutesUntil: number;
+  timeUntilFormatted: string;
+}
+
+export interface UpcomingBlocksResult {
+  currentTime: string;
+  currentTimezone: string;
+  upcomingBlocks: UpcomingBlock[];
+  totalBlocks: number;
+}
+
 export interface ReservationRequest {
   lineSlug: string;
   officeSlug: string;
@@ -117,8 +131,23 @@ export interface ReservationRequest {
   };
 }
 
+/**
+ * Interface de Reserva
+ *
+ * CLAVES PRINCIPALES:
+ * - _id: ID único de la reserva en la base de datos (MongoDB ObjectId)
+ * - reserveNumber: Número de reserva legible para el usuario (ej: "RV926")
+ *
+ * Ambas claves pueden usarse para consultar una reserva:
+ * - _id: Identificador interno del sistema
+ * - reserveNumber: Identificador amigable para mostrar al usuario
+ */
 export interface Reservation {
-  _id: string;
+  // CLAVES PRINCIPALES
+  _id: string; // ID único interno (MongoDB ObjectId)
+  reserveNumber: string; // Número de reserva para el usuario (ej: "RV926")
+
+  // Información de la oficina
   office: {
     id: number;
     name: string;
@@ -128,6 +157,8 @@ export interface Reservation {
     lat: number;
     address: string;
   };
+
+  // Información de la línea
   line: {
     name: string;
     slug: string;
@@ -136,6 +167,8 @@ export interface Reservation {
     typeid: string;
     folder: string | null;
   };
+
+  // Información del usuario
   user: {
     id: number;
     name: string;
@@ -143,21 +176,28 @@ export interface Reservation {
     rut?: string;
     phone: string;
   };
-  from: string;
-  to: string;
+
+  // Horarios y estado
+  from: string; // Fecha/hora inicio (ISO 8601)
+  to: string; // Fecha/hora fin (ISO 8601)
   version: number;
   confirmed: boolean;
-  inserted_at: string;
-  updated_at: string;
+  inserted_at: string; // Fecha de creación
+  updated_at: string; // Fecha de última actualización
+  deleted_at: string | null; // Fecha de eliminación (si aplica)
+
+  // Configuración
   origin: string;
   userProvider: string;
   isLocalWeb: boolean;
-  meet: boolean;
-  meta: any;
-  deleted_at: string | null;
+  meet: boolean; // Si es por videollamada
   extended: boolean;
-  operationNumber: number;
-  reserveNumber: string;
+
+  // Identificadores adicionales
+  operationNumber: number; // Número de operación único
+
+  // Metadata y estado
+  meta: any;
   active: boolean;
   available: number;
 }

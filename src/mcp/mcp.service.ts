@@ -78,6 +78,14 @@ export class MCPService {
             args.tz || 'America/Santiago',
           );
 
+        case 'getUpcomingBlocks':
+          this.validateRequired(args, ['lineSlug']);
+          return await this.zeroqService.getUpcomingBlocks(
+            args.lineSlug,
+            args.date,
+            args.tz || 'America/Santiago',
+          );
+
         case 'createReservation':
           this.validateRequired(args, [
             'officeSlug',

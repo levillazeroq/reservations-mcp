@@ -17,6 +17,8 @@ import {
   OfficeList,
   TimeBlock,
   BlockValidationResult,
+  UpcomingBlock,
+  UpcomingBlocksResult,
 } from './types';
 
 @Injectable()
@@ -473,11 +475,192 @@ export class ZeroQService {
   }
 
   /**
+   * Obtiene los 5 bloques de tiempo más próximos a la hora actual
+   * Consulta el día actual y el siguiente automáticamente
+   * Los bloques se ordenan por proximidad a la hora actual
+   */
+  async getUpcomingBlocks(
+    lineSlug: string,
+    date?: string,
+    tz: string = 'America/Santiago',
+  ): Promise<UpcomingBlocksResult> {
+    try {
+      this.logger.log(
+        `🔜 Getting upcoming blocks for: "${lineSlug}" (timezone: ${tz})`,
+      );
+
+      // Obtener la hora actual en la zona horaria especificada
+      const nowInTz = moment().tz(tz);
+      const currentDayStr = nowInTz.format('YYYY-MM-DD');
+      this.logger.log(
+        `⏰ Current time in ${tz}: ${nowInTz.format('YYYY-MM-DD HH:mm:ss')}`,
+      );
+
+      // Determinar la fecha de inicio
+      let startDate: string;
+      let startDateMoment: moment.Moment;
+
+      if (date) {
+        // Normalizar fecha
+        startDate = this.dateUtils.toSimpleDate(date);
+        startDateMoment = moment.tz(startDate, tz);
+
+        // Verificar que el año sea el actual
+        const currentYear = new Date().getFullYear();
+        if (startDateMoment.year() !== currentYear) {
+          this.logger.warn(
+            `⚠️  Year ${startDateMoment.year()} adjusted to ${currentYear}`,
+          );
+          startDateMoment.year(currentYear);
+          startDate = startDateMoment.format('YYYY-MM-DD');
+        }
+
+        // Validar que la fecha no sea anterior a hoy
+        if (startDateMoment.isBefore(moment(currentDayStr), 'day')) {
+          this.logger.error(
+            `❌ Requested date (${startDate}) is before current day (${currentDayStr})`,
+          );
+          throw new Error(
+            `Cannot query blocks for past dates. Requested date (${startDate}) is before today (${currentDayStr}). Please provide a current or future date.`,
+          );
+        }
+      } else {
+        // Por defecto usar el día de hoy
+        startDate = currentDayStr;
+        startDateMoment = nowInTz.clone();
+      }
+
+      this.logger.log(`📅 Start date: ${startDate}`);
+
+      // Calcular el día siguiente
+      const nextDay = moment.tz(startDate, tz).add(1, 'day');
+      const nextDayStr = nextDay.format('YYYY-MM-DD');
+
+      // Consultar bloques del día de inicio y del día siguiente
+      const fromDate = startDate;
+      const toDate = nextDayStr;
+      const url = `${this.configService.zeroqBlocksBaseUrl}/blocks/${lineSlug}?from=${fromDate}&to=${toDate}&tz=${tz}&notCache=true`;
+
+      this.logger.log(`🌐 Querying blocks API for 2 days: ${url}`);
+
+      const response = await this.httpService.get<
+        BlockDayResponse[] | { data: BlockDayResponse[] }
+      >(url);
+
+      // La API puede devolver un array directamente o un objeto con un campo 'data'
+      const blocksData = Array.isArray(response)
+        ? response
+        : response?.data || [];
+
+      if (!Array.isArray(blocksData)) {
+        this.logger.error('❌ Invalid response format from blocks API');
+        throw new Error('Invalid response format from blocks API');
+      }
+
+      if (blocksData.length === 0) {
+        this.logger.warn(
+          `⚠️  No blocks found for ${lineSlug} in the next 2 days`,
+        );
+        return {
+          currentTime: nowInTz.format('YYYY-MM-DD HH:mm:ss'),
+          currentTimezone: tz,
+          upcomingBlocks: [],
+          totalBlocks: 0,
+        };
+      }
+
+      // Recolectar todos los bloques disponibles de ambos días
+      const allBlocks: UpcomingBlock[] = [];
+
+      for (const day of blocksData) {
+        if (!day.blocks || day.blocks.length === 0) {
+          continue;
+        }
+
+        for (const block of day.blocks) {
+          // Debe tener slots disponibles
+          if (block.slots <= 0) {
+            continue;
+          }
+
+          const blockTime = moment.tz(block.from, tz);
+
+          // Solo incluir bloques que no hayan pasado
+          if (blockTime.isAfter(nowInTz)) {
+            const minutesUntil = blockTime.diff(nowInTz, 'minutes');
+            const hours = Math.floor(minutesUntil / 60);
+            const minutes = minutesUntil % 60;
+
+            let timeUntilFormatted: string;
+            if (hours > 24) {
+              const days = Math.floor(hours / 24);
+              const remainingHours = hours % 24;
+              timeUntilFormatted = `${days}d ${remainingHours}h`;
+            } else if (hours > 0) {
+              timeUntilFormatted = `${hours}h ${minutes}m`;
+            } else {
+              timeUntilFormatted = `${minutes}m`;
+            }
+
+            allBlocks.push({
+              from: block.from,
+              to: block.to,
+              slots: block.slots,
+              date: day.date,
+              minutesUntil,
+              timeUntilFormatted,
+            });
+          }
+        }
+      }
+
+      // Ordenar por proximidad (minutesUntil ascendente)
+      allBlocks.sort((a, b) => a.minutesUntil - b.minutesUntil);
+
+      // Tomar los primeros 5 bloques
+      const upcomingBlocks = allBlocks.slice(0, 5);
+
+      this.logger.log(
+        `✅ Found ${upcomingBlocks.length} upcoming block(s) (from ${allBlocks.length} total available):`,
+      );
+      upcomingBlocks.forEach((block, index) => {
+        const blockTime = moment.tz(block.from, tz);
+        this.logger.log(
+          `   ${index + 1}. ${blockTime.format('YYYY-MM-DD HH:mm')} - ${moment.tz(block.to, tz).format('HH:mm')} (${block.slots} slot${block.slots > 1 ? 's' : ''}, in ${block.timeUntilFormatted})`,
+        );
+      });
+
+      return {
+        currentTime: nowInTz.format('YYYY-MM-DD HH:mm:ss'),
+        currentTimezone: tz,
+        upcomingBlocks,
+        totalBlocks: allBlocks.length,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Error getting upcoming blocks for line ${lineSlug}:`,
+        error,
+      );
+      throw error;
+    }
+  }
+
+  /**
    * Crea una nueva reserva
+   *
+   * @param data - Datos de la reserva a crear
+   * @returns Reservation - Objeto completo de la reserva creada
+   *
+   * CLAVES PRINCIPALES en la respuesta:
+   * - _id: ID único interno de MongoDB (usar para operaciones del sistema)
+   * - reserveNumber: Número de reserva legible (ej: "RV926") - mostrar al usuario
+   * - operationNumber: Número de operación único para tracking
+   *
+   * El usuario debe guardar reserveNumber para futuras consultas
    */
   async createReservation(data: ReservationRequest): Promise<Reservation> {
     try {
-      this.logger.log('🔍 Creating reservation...');
+      this.logger.log('Creating reservation...');
 
       const url = this.configService.zeroqReservationsBaseUrl;
       const headers: Record<string, string> = {};
@@ -515,19 +698,35 @@ export class ZeroQService {
         },
       );
 
-      this.logger.log(`✅ Reservation created: ${response._id}`);
+
       return response;
     } catch (error) {
-      this.logger.error('❌ Failed to create reservation');
+      this.logger.error('Failed to create reservation');
       throw error;
     }
   }
 
   /**
    * Obtiene detalles de una reserva existente
+   *
+   * @param reservationId - Puede ser _id (MongoDB ObjectId) o reserveNumber (ej: "RV926")
+   * @returns Reservation - Objeto completo de la reserva
+   *
+   * CLAVES PRINCIPALES que se pueden usar para consultar:
+   * 1. _id: ID interno de MongoDB (ej: "507f1f77bcf86cd799439011")
+   * 2. reserveNumber: Número de reserva legible (ej: "RV926") - RECOMENDADO para usuarios
+   *
+   * La respuesta incluye:
+   * - Información completa de la oficina (ubicación, timezone, etc)
+   * - Información de la línea de atención
+   * - Datos del usuario que reservó
+   * - Horarios (from/to) en formato ISO 8601
+   * - Estado de la reserva (active, confirmed, deleted_at)
    */
   async getReservation(reservationId: string): Promise<Reservation> {
     try {
+      this.logger.log(`Getting reservation: ${reservationId}`);
+
       const url = `${this.configService.zeroqReservationsBaseUrl}/${reservationId}`;
       const headers: Record<string, string> = {};
 
@@ -540,6 +739,8 @@ export class ZeroQService {
       const response = await this.httpService.get<Reservation>(url, {
         headers,
       });
+
+
 
       return response;
     } catch (error) {

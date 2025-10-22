@@ -166,9 +166,36 @@ export const MCP_TOOLS: MCPTool[] = [
     },
   },
   {
+    name: 'getUpcomingBlocks',
+    description:
+      '🆕 Obtiene automáticamente los 5 bloques de tiempo más próximos disponibles para una línea específica. Consulta inteligentemente el día actual y el siguiente, filtra bloques que ya pasaron basándose en la hora actual del timezone, y los ordena por proximidad. Ideal para mostrar las opciones más inmediatas al usuario sin necesidad de especificar hora. ⚠️ IMPORTANTE: La fecha opcional debe ser HOY o FUTURA, nunca fechas pasadas.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        lineSlug: {
+          type: 'string',
+          description:
+            'Slug único de la línea (ej: "demo-web-oscar-fila-01"). IMPORTANTE: Debe ser el slug completo de la línea, no el slug de la oficina.',
+        },
+        date: {
+          type: 'string',
+          description:
+            'Fecha de inicio para buscar bloques próximos en formato YYYY-MM-DD (ej: "2025-10-22"). Opcional: si no se proporciona, se usa el día de HOY por defecto. ⚠️ CRÍTICO: La fecha debe ser HOY o FUTURA. El sistema consultará este día y el siguiente para encontrar los 5 bloques más cercanos.',
+        },
+        tz: {
+          type: 'string',
+          description:
+            'Zona horaria (ej: "America/Santiago"). Por defecto: America/Santiago. Se usa para calcular la hora actual y filtrar bloques expirados.',
+          default: 'America/Santiago',
+        },
+      },
+      required: ['lineSlug'],
+    },
+  },
+  {
     name: 'createReservation',
     description:
-      'Crea una nueva reserva para un bloque de tiempo específico. Requiere información de la persona que reserva y el bloque seleccionado. ⚠️ IMPORTANTE: Solo acepta reservas para HOY o fechas FUTURAS, nunca fechas pasadas.',
+      'Crea una nueva reserva para un bloque de tiempo específico. Requiere información de la persona que reserva y el bloque seleccionado. IMPORTANTE: Solo acepta reservas para HOY o fechas FUTURAS, nunca fechas pasadas. RETORNA: Objeto Reservation completo con CLAVES PRINCIPALES: 1) "_id" (ID interno MongoDB usado por la API internamente), 2) "reserveNumber" (número legible ej: "RV926" - ESTE ES EL QUE SE MUESTRA AL USUARIO), 3) "operationNumber" (número de operación único). CRÍTICO: Siempre mostrar "reserveNumber" al usuario para futuras consultas. El usuario usará "reserveNumber" para consultar su reserva, aunque internamente la API usa "_id".',
     inputSchema: {
       type: 'object',
       properties: {
@@ -226,13 +253,14 @@ export const MCP_TOOLS: MCPTool[] = [
   {
     name: 'getReservation',
     description:
-      'Obtiene los detalles completos de una reserva existente por su ID.',
+      'Obtiene los detalles completos de una reserva existente. IMPORTANTE CONTEXTO: La API consulta internamente usando el campo "_id" (ID MongoDB), pero al usuario siempre se le muestra el "reserveNumber" (número legible como "RV926"). ACEPTA: Tanto _id como reserveNumber como parámetro. RETORNA: Objeto Reservation completo donde: 1) "_id" es el identificador interno del sistema (usar para consultas API), 2) "reserveNumber" es el número que ve y usa el usuario (SIEMPRE mostrar este al usuario). Cuando el usuario diga "mi reserva RV926", usar ese valor para consultar.',
     inputSchema: {
       type: 'object',
       properties: {
         reservationId: {
           type: 'string',
-          description: 'ID único de la reserva (ej: "R89104178963")',
+          description:
+            'Identificador de la reserva. La API consulta con el "_id" interno, pero acepta también "reserveNumber". Puede ser: 1) _id (MongoDB ObjectId ej: "507f1f77bcf86cd799439011") - usado internamente por la API, 2) reserveNumber (ej: "RV926") - el que ve el usuario. Si el usuario proporciona "RV926", el sistema lo acepta y hace la consulta correctamente.',
         },
       },
       required: ['reservationId'],
