@@ -68,5 +68,39 @@ export class HttpService {
       throw error;
     }
   }
+
+  async delete<T>(url: string, options?: AxiosRequestConfig): Promise<T> {
+    try {
+      this.logger.log(`🗑️  DELETE ${url}`);
+
+      const headers = {
+        accept: 'application/json, text/plain, */*',
+        'cache-control': 'no-cache',
+        ...options?.headers,
+      };
+
+      const response = await axios.delete<T>(url, {
+        headers,
+        ...options,
+      });
+
+      this.logger.log(`✅ DELETE ${url} - Status: ${response.status}`);
+
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError;
+        this.logger.error(`❌ DELETE ${url} failed - Status: ${axiosError.response?.status}`);
+        this.logger.error(`📩 Error: ${JSON.stringify(axiosError.response?.data)}`);
+
+        throw new Error(
+          `HTTP ${axiosError.response?.status}: ${axiosError.response?.statusText} - ${JSON.stringify(axiosError.response?.data)}`,
+        );
+      }
+
+      this.logger.error(`❌ DELETE ${url} failed:`, error);
+      throw error;
+    }
+  }
 }
 

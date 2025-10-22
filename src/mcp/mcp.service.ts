@@ -138,6 +138,10 @@ export class MCPService {
             },
           });
 
+        case 'cancelReservation':
+          this.validateRequired(args, ['reservationId']);
+          return await this.zeroqService.cancelReservation(args.reservationId);
+
         case 'getReservation':
           this.validateRequired(args, ['reservationId']);
           return await this.zeroqService.getReservation(args.reservationId);

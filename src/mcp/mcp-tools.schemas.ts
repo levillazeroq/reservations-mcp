@@ -285,6 +285,22 @@ export const MCP_TOOLS: MCPTool[] = [
     },
   },
   {
+    name: 'cancelReservation',
+    description:
+      'Cancela una reserva existente. FUNCIONAMIENTO: Realiza un soft delete marcando la reserva como eliminada (deleted_at != null). La reserva queda inactiva y el horario se libera para otros usuarios. IMPORTANTE: Acepta tanto _id como reserveNumber. No se puede cancelar una reserva ya pasada. RETORNA: Objeto Reservation con el estado actualizado mostrando deleted_at con la fecha de cancelación. FLUJO: Usuario tiene RV123 → Llama cancelReservation("RV123") → Sistema marca como cancelada → Informar: "Tu reserva RV123 ha sido cancelada exitosamente".',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        reservationId: {
+          type: 'string',
+          description:
+            'Identificador de la reserva a cancelar. Acepta tanto _id (MongoDB ObjectId ej: "507f1f77bcf86cd799439011") como reserveNumber (ej: "RV926" - RECOMENDADO). Si el usuario dice "cancela mi reserva RV926", usar ese valor directamente.',
+        },
+      },
+      required: ['reservationId'],
+    },
+  },
+  {
     name: 'getReservation',
     description:
       'Obtiene los detalles completos de una reserva existente. IMPORTANTE CONTEXTO: La API consulta internamente usando el campo "_id" (ID MongoDB), pero al usuario siempre se le muestra el "reserveNumber" (número legible como "RV926"). ACEPTA: Tanto _id como reserveNumber como parámetro. RETORNA: Objeto Reservation completo donde: 1) "_id" es el identificador interno del sistema (usar para consultas API), 2) "reserveNumber" es el número que ve y usa el usuario (SIEMPRE mostrar este al usuario). Cuando el usuario diga "mi reserva RV926", usar ese valor para consultar.',

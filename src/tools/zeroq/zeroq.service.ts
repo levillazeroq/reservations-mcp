@@ -785,6 +785,51 @@ export class ZeroQService {
   }
 
   /**
+   * Cancela una reserva existente
+   *
+   * @param reservationId - Puede ser _id (MongoDB ObjectId) o reserveNumber (ej: "RV926")
+   * @returns Reservation - Objeto de la reserva cancelada (con deleted_at actualizado)
+   *
+   * IMPORTANTE:
+   * - Acepta tanto _id como reserveNumber
+   * - Marca la reserva como eliminada (soft delete)
+   * - La reserva queda con deleted_at != null
+   * - No se puede cancelar una reserva ya pasada
+   * - La respuesta incluye la reserva con su nuevo estado
+   *
+   * FLUJO:
+   * 1. Usuario tiene reserva RV123 y quiere cancelarla
+   * 2. Llamar cancelReservation("RV123")
+   * 3. Sistema marca la reserva como cancelada
+   * 4. Informar al usuario: "Tu reserva RV123 ha sido cancelada exitosamente"
+   */
+  async cancelReservation(reservationId: string): Promise<Reservation> {
+    try {
+      this.logger.log(`Canceling reservation: ${reservationId}`);
+
+      const url = `${this.configService.zeroqReservationsBaseUrl}/${reservationId}`;
+      const headers: Record<string, string> = {};
+
+      // Usar el token de autenticación de las variables de entorno
+      const authToken = this.configService.zeroqAuthToken;
+      if (authToken) {
+        headers['authorization'] = authToken;
+      }
+
+      const response = await this.httpService.delete<Reservation>(url, {
+        headers,
+      });
+
+      this.logger.log(`Reservation canceled successfully: ${reservationId}`);
+
+      return response;
+    } catch (error) {
+      this.logger.error(`Error canceling reservation ${reservationId}:`, error);
+      throw new Error(`Failed to cancel reservation ${reservationId}`);
+    }
+  }
+
+  /**
    * Obtiene detalles de una reserva existente
    *
    * @param reservationId - Puede ser _id (MongoDB ObjectId) o reserveNumber (ej: "RV926")
