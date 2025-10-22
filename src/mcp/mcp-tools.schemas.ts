@@ -251,6 +251,73 @@ export const MCP_TOOLS: MCPTool[] = [
     },
   },
   {
+    name: 'rescheduleReservation',
+    description:
+      'Reagenda una reserva existente a un nuevo horario. FUNCIONAMIENTO: El sistema crea una nueva reserva con el nuevo horario y marca la anterior como reagendada. IMPORTANTE: Solo acepta fechas HOY o FUTURAS, nunca fechas pasadas. PARAMETROS REQUERIDOS: oldIdReservation (ID o reserveNumber de la reserva a cambiar), officeSlug, lineSlug, from, to (nuevo horario), personName, personPhone, personEmail. RETORNA: Objeto Reservation NUEVO con sus propios _id y reserveNumber (mostrar el NUEVO reserveNumber al usuario). FLUJO: Usuario tiene RV123 y quiere cambiar horario → Sistema crea RV456 nueva → Mostrar al usuario: "Tu reserva ha sido reagendada. Nuevo número: RV456".',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        oldIdReservation: {
+          type: 'string',
+          description:
+            'ID de la reserva a reagendar. Acepta tanto _id (MongoDB ObjectId) como reserveNumber (ej: "RV926"). Este es el identificador de la reserva ANTERIOR que se quiere cambiar.',
+        },
+        officeSlug: {
+          type: 'string',
+          description:
+            'Slug de la oficina (obtenido con listWebOffices o getOfficeDetails)',
+        },
+        lineSlug: {
+          type: 'string',
+          description:
+            'Slug completo de la línea (OBLIGATORIO obtenerlo con getOfficeLines, NO inventar)',
+        },
+        from: {
+          type: 'string',
+          description:
+            'Fecha/hora de inicio del NUEVO bloque en formato ISO 8601 con .000Z (ej: "2025-10-17T14:00:00.000Z"). Debe coincidir EXACTAMENTE con un bloque obtenido de getAvailableBlocks. CRÍTICO: Validar que la fecha/hora NO sea pasada.',
+        },
+        to: {
+          type: 'string',
+          description:
+            'Fecha/hora de fin del NUEVO bloque en formato ISO 8601 con .000Z (ej: "2025-10-17T14:30:00.000Z"). Debe coincidir EXACTAMENTE con un bloque obtenido de getAvailableBlocks.',
+        },
+        personName: {
+          type: 'string',
+          description: 'Nombre completo de la persona',
+        },
+        personPhone: {
+          type: 'string',
+          description:
+            'Teléfono de contacto (incluir código de país, ej: +56912345678)',
+        },
+        personEmail: {
+          type: 'string',
+          description: 'Email de contacto',
+        },
+        personRut: {
+          type: 'string',
+          description: 'RUT/DNI de la persona (opcional)',
+        },
+        meet: {
+          type: 'boolean',
+          description: 'Si la reserva es por videollamada. Por defecto: false',
+          default: false,
+        },
+      },
+      required: [
+        'oldIdReservation',
+        'officeSlug',
+        'lineSlug',
+        'from',
+        'to',
+        'personName',
+        'personPhone',
+        'personEmail',
+      ],
+    },
+  },
+  {
     name: 'getReservation',
     description:
       'Obtiene los detalles completos de una reserva existente. IMPORTANTE CONTEXTO: La API consulta internamente usando el campo "_id" (ID MongoDB), pero al usuario siempre se le muestra el "reserveNumber" (número legible como "RV926"). ACEPTA: Tanto _id como reserveNumber como parámetro. RETORNA: Objeto Reservation completo donde: 1) "_id" es el identificador interno del sistema (usar para consultas API), 2) "reserveNumber" es el número que ve y usa el usuario (SIEMPRE mostrar este al usuario). Cuando el usuario diga "mi reserva RV926", usar ese valor para consultar.',

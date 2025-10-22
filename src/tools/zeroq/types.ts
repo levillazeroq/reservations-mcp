@@ -132,6 +132,14 @@ export interface ReservationRequest {
 }
 
 /**
+ * Interface para reagendar una reserva existente
+ * Extiende ReservationRequest con el ID de la reserva anterior
+ */
+export interface RescheduleReservationRequest extends ReservationRequest {
+  oldIdReservation: string; // ID de la reserva a reagendar (puede ser _id o reserveNumber)
+}
+
+/**
  * Interface de Reserva
  *
  * CLAVES PRINCIPALES:

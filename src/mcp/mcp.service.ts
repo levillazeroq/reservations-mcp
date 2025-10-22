@@ -119,6 +119,41 @@ export class MCPService {
             },
           });
 
+        case 'rescheduleReservation':
+          this.validateRequired(args, [
+            'oldIdReservation',
+            'officeSlug',
+            'lineSlug',
+            'from',
+            'to',
+            'personName',
+            'personPhone',
+            'personEmail',
+          ]);
+          return await this.zeroqService.rescheduleReservation({
+            oldIdReservation: args.oldIdReservation,
+            officeSlug: args.officeSlug,
+            lineSlug: args.lineSlug,
+            from: args.from,
+            to: args.to,
+            meet: args.meet || false,
+            meta: {
+              forms: {
+                type: 'default',
+                questions: [
+                  { question: 'Nombre', answer: args.personName },
+                  { question: 'Teléfono', answer: args.personPhone },
+                  { question: 'Email', answer: args.personEmail },
+                  ...(args.personRut
+                    ? [{ question: 'RUT', answer: args.personRut }]
+                    : []),
+                ],
+              },
+              utm: null,
+              formsError: null,
+            },
+          });
+
         case 'getReservation':
           this.validateRequired(args, ['reservationId']);
           return await this.zeroqService.getReservation(args.reservationId);

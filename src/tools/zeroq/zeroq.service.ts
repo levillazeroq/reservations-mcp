@@ -13,6 +13,7 @@ import {
   AvailableBlockDay,
   Reservation,
   ReservationRequest,
+  RescheduleReservationRequest,
   Line,
   OfficeList,
   TimeBlock,
@@ -702,6 +703,84 @@ export class ZeroQService {
       return response;
     } catch (error) {
       this.logger.error('Failed to create reservation');
+      throw error;
+    }
+  }
+
+  /**
+   * Reagenda una reserva existente a un nuevo horario
+   *
+   * @param data - Datos de la nueva reserva incluyendo oldIdReservation
+   * @returns Reservation - Objeto completo de la nueva reserva creada
+   *
+   * IMPORTANTE:
+   * - oldIdReservation: ID de la reserva a reagendar (acepta _id o reserveNumber)
+   * - Valida que el nuevo horario sea válido (fecha >= HOY)
+   * - Crea una nueva reserva y marca la anterior como reagendada
+   * - La respuesta incluye un nuevo _id y reserveNumber (mostrar al usuario)
+   *
+   * FLUJO:
+   * 1. Usuario tiene reserva RV123
+   * 2. Quiere cambiarla a otro horario
+   * 3. Se envía oldIdReservation: "RV123" + nuevo horario
+   * 4. Sistema crea nueva reserva RV456 y marca RV123 como reagendada
+   * 5. Mostrar al usuario el nuevo reserveNumber (RV456)
+   */
+  async rescheduleReservation(
+    data: RescheduleReservationRequest,
+  ): Promise<Reservation> {
+    try {
+      this.logger.log(
+        `Rescheduling reservation: ${data.oldIdReservation} to new time`,
+      );
+
+      const url = this.configService.zeroqReservationsBaseUrl;
+      const headers: Record<string, string> = {};
+
+      // Usar el token de autenticación de las variables de entorno
+      const authToken = this.configService.zeroqAuthToken;
+      if (authToken) {
+        headers['authorization'] = authToken;
+      }
+
+      // Validar y normalizar fechas
+      const normalizedFrom = this.dateUtils.validateAndNormalizeDate(
+        data.from,
+        'from',
+      );
+      const normalizedTo = this.dateUtils.validateAndNormalizeDate(
+        data.to,
+        'to',
+      );
+
+      // Validar que 'to' sea después de 'from'
+      this.dateUtils.validateDateRange(normalizedFrom, normalizedTo);
+
+      const normalizedData = {
+        ...data,
+        from: normalizedFrom,
+        to: normalizedTo,
+        oldIdReservation: data.oldIdReservation, // Campo específico para reagendar
+      };
+
+      const response = await this.httpService.post<Reservation>(
+        url,
+        normalizedData,
+        {
+          headers,
+        },
+      );
+
+      this.logger.log(`Reservation rescheduled successfully`);
+      this.logger.log(`  - Old reservation: ${data.oldIdReservation}`);
+      this.logger.log(`  - New ID: ${response._id}`);
+      this.logger.log(`  - New Reserve Number: ${response.reserveNumber}`);
+
+      return response;
+    } catch (error) {
+      this.logger.error(
+        `Failed to reschedule reservation ${data.oldIdReservation}`,
+      );
       throw error;
     }
   }
