@@ -17,39 +17,6 @@ export interface MCPTool {
 
 export const MCP_TOOLS: MCPTool[] = [
   {
-    name: 'chatAgent',
-    description:
-      'Agente conversacional inteligente que entiende lenguaje natural y ejecuta automáticamente las operaciones necesarias en el sistema de reservas. Puede buscar oficinas, consultar disponibilidad, crear reservas y más. Ideal para interacciones en lenguaje natural donde el usuario no especifica exactamente qué tool usar.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        message: {
-          type: 'string',
-          description:
-            'Mensaje del usuario en lenguaje natural. Ejemplos: "Busca oficinas en Santiago", "Quiero reservar mañana a las 11am", "Consulta mi reserva R123"',
-        },
-        conversationHistory: {
-          type: 'array',
-          description:
-            'Historial de conversación previa (opcional). Array de objetos con role ("user" o "assistant") y content.',
-          items: {
-            type: 'object',
-            properties: {
-              role: {
-                type: 'string',
-                enum: ['user', 'assistant'],
-              },
-              content: {
-                type: 'string',
-              },
-            },
-          },
-        },
-      },
-      required: ['message'],
-    },
-  },
-  {
     name: 'listWebOffices',
     description:
       'Lista todas las oficinas web disponibles en ZeroQ. Retorna información básica de cada oficina incluyendo slug, nombre, ubicación y estado.',

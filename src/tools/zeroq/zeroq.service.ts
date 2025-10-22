@@ -8,7 +8,6 @@ import {
   Office,
   OfficeDetails,
   OfficeDetailsDTO,
-  BlockDay,
   BlockDayResponse,
   AvailableBlockDay,
   Reservation,

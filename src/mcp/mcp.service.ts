@@ -1,6 +1,5 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { ZeroQService } from '../tools/zeroq/zeroq.service';
-import { AgentService } from '../agent/agent.service';
 import { MCP_TOOLS } from './mcp-tools.schemas';
 
 /**
@@ -10,10 +9,7 @@ import { MCP_TOOLS } from './mcp-tools.schemas';
 export class MCPService {
   private readonly logger = new Logger(MCPService.name);
 
-  constructor(
-    private readonly zeroqService: ZeroQService,
-    private readonly agentService: AgentService,
-  ) {}
+  constructor(private readonly zeroqService: ZeroQService) {}
 
   /**
    * Retorna la lista de tools disponibles (para n8n)
@@ -34,18 +30,6 @@ export class MCPService {
 
     try {
       switch (toolName) {
-        case 'chatAgent':
-          this.validateRequired(args, ['message']);
-          const chatResult = await this.agentService.chat(
-            args.message,
-            args.conversationHistory,
-          );
-          return {
-            message: chatResult.message,
-            conversationHistory: chatResult.conversationHistory,
-            toolCallsMade: chatResult.toolCallsMade,
-          };
-
         case 'listWebOffices':
           return await this.zeroqService.listWebOffices();
 
